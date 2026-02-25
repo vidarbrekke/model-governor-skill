@@ -1,11 +1,17 @@
 # router-governor / model-governor skill
 
-One repo for **model governance** on OpenClaw: canonical model aliases (OpenRouter) and router/default/fallback wiring. Use this for **version control and development**; installation into the live OpenClaw environment is separate (see below).
+One repo for **model governance** on OpenClaw: canonical model aliases (OpenRouter), router/default/fallback wiring, and the **router-governor skill** (routing policy and escalation rules). Use this for **version control and development**; installation into the live OpenClaw environment is separate (see below).
 
-## What’s in this repo
+## What’s in this repo (dev directory)
 
-- **config/models.json** — Alias → OpenRouter model ID (e.g. `router`, `default`, `codex`).
-- **config/openclaw.json** — Snippet for OpenClaw: primary/fallbacks and `agents.defaults.models` shape. Merge into your live config.
+| Path | Purpose |
+|------|--------|
+| **config/models.json** | Alias → OpenRouter model ID (`router`, `default`, `codex`, etc.). |
+| **config/openclaw.json** | Snippet: primary/fallbacks and `agents.defaults.models` shape. Merge into live config. |
+| **skills/router-governor/SKILL.md** | Router-governor skill definition (routing policy, escalation rules). Install to `~/.openclaw/skills/router-governor/` or `workspace/skills/router-governor/`. |
+| **skills/router-governor/examples.md** | Example prompts and escalation cases. |
+
+These are the files that **make up the model-governor / router-governor feature**. Other paths on a live server (e.g. `openclaw.json` root, `workspace/docs/CLOUD_AGENT_CONTEXT.md`, `workspace/memory/`, `workspace/scripts/`) are **workspace or machine-specific** and are **not** part of this repo. Install by copying/merging from this repo into the live environment.
 
 ## Usage (after installation)
 
@@ -20,9 +26,20 @@ Ensure OpenClaw has the OpenRouter provider and API key configured; then use the
 
 **This repo does not set any active parameters by itself.** Repo directories are for **development and version control**, not for live use. To use with OpenClaw:
 
-1. Copy or merge **config/models.json** into your live config (e.g. `~/.openclaw/openclaw.json` under `agents.defaults.models` or `llm.modelAliases`).
-2. Optionally merge the relevant keys from **config/openclaw.json** (primary/fallbacks) into the same file.
-3. Live config lives in `~/.openclaw/` (or your workspace config). Do not rely on this repo path at runtime.
+1. **Model aliases:** Copy or merge **config/models.json** into your live config (e.g. `~/.openclaw/openclaw.json` under `agents.defaults.models` or `llm.modelAliases`).
+2. **Primary/fallbacks:** Optionally merge the relevant keys from **config/openclaw.json** into the same file.
+3. **Router-governor skill:** Copy **skills/router-governor/** to your OpenClaw skills directory, e.g.  
+   `cp -r skills/router-governor ~/.openclaw/skills/`  
+   or, on a workspace layout:  
+   `cp -r skills/router-governor <workspace>/skills/`
+4. Live config and skills live in `~/.openclaw/` (or your workspace). Do not rely on this repo path at runtime.
+
+## What is not in this repo
+
+- **Root openclaw.json** — Full live config; machine-specific. We only provide a **snippet** in `config/openclaw.json`.
+- **CLOUD_AGENT_CONTEXT.md** — Workspace/agent context for the cloud instance; not part of the router-governor skill.
+- **workspace/memory/** — Session and memory state; not versioned here.
+- **workspace/scripts/** — Ops/setup scripts (e.g. fix-router-model-config) may reference this feature but live in the workspace; optional to copy into this repo later if you want them versioned.
 
 ## Version control
 
