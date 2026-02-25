@@ -20,7 +20,8 @@ These are the files that **make up the model-governor / router-governor feature*
 - **Router:** `router` alias (lightweight triage).
 - **Worker / default:** `default` or `qwen` for coding.
 - **Fallbacks:** `gemini`, `sonnet`.
-- **Advanced coding:** `codex` (gpt-5.3-codex). Do not use gpt-5.2-codex.
+- **Advanced coding:** `codex` or **`codex53`** (gpt-5.3-codex). Use **`/model codex53`** to avoid the built-in catalog resolving to openai-codex/gpt-5.2-codex.
+- **If `/model codex` sets openai-codex/gpt-5.2-codex:** OpenClaw’s built-in catalog can resolve the alias `codex` to the wrong provider. Use **`/model codex53`** or the full ref **`/model openrouter/openai/gpt-5.3-codex`**.
 
 The snippet in **config/openclaw.json** only wires `router`, `default`, and `gemini`. Aliases `codex` and `sonnet` are defined in **config/models.json** and are available for manual override or future escalation tiers; add them to your live config if you use those tiers.
 
@@ -36,7 +37,7 @@ Ensure OpenClaw has the OpenRouter provider and API key configured; then use the
    `cp -r skills/router-governor ~/.openclaw/skills/`  
    or, on a workspace layout:  
    `cp -r skills/router-governor <workspace>/skills/`
-4. **Allowlist + provider catalog:** OpenClaw only allows models that are (a) in `agents.defaults.models` (allowlist for `/model`) and (b) in the provider’s model catalog. The snippet includes `models.providers.openrouter.models` so all router-list OpenRouter models (e.g. `openrouter/openai/gpt-5.3-codex`) are in the catalog. Merge the full **config/openclaw.json** snippet (including the `models` block) into your live config so you don’t get “Model … is not allowed.” Non-OpenRouter models (e.g. `kimi` via Fireworks) need that provider’s catalog configured separately.
+4. **Allowlist + provider catalog:** OpenClaw only allows models that are (a) in `agents.defaults.models` (allowlist for `/model`) and (b) in the provider’s model catalog. The snippet includes `models.providers.openrouter` and `models.providers.fireworks` (kimi only). Merge the full **config/openclaw.json** snippet (including the `models` block) into your live config so you don’t get “Model … is not allowed.” All models are OpenRouter except **kimi** (`/fireworks/models/kimi-k2p5`), which is the only non-OpenRouter model; configure Fireworks auth (e.g. `FIREWORKS_API_KEY`) if you use kimi.
 5. Live config and skills live in `~/.openclaw/` (or your workspace). Do not rely on this repo path at runtime.
 
 ## What is not in this repo

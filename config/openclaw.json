@@ -3,17 +3,60 @@
     "defaults": {
       "model": {
         "primary": "router",
-        "fallbacks": ["default", "gemini"]
+        "fallbacks": [
+          "default",
+          "gemini"
+        ]
       },
       "models": {
-        "openrouter/mistralai/ministral-14b-2512": { "alias": "router" },
-        "openrouter/qwen/qwen3-coder-next": { "alias": "default", "params": { "maxTokens": 8192 } },
-        "openrouter/google/gemini-2.5-flash": { "alias": "gemini", "params": { "maxTokens": 16384 } },
-        "openrouter/openai/gpt-5.3-codex": { "alias": "codex", "params": { "maxTokens": 16384 } },
-        "openrouter/anthropic/claude-sonnet-4.6": { "alias": "sonnet", "params": { "maxTokens": 16384 } },
-        "openrouter/anthropic/claude-haiku-4.5": { "alias": "writer", "params": { "maxTokens": 16384 } },
-        "openrouter/qwen/qwen3-coder-plus": { "alias": "qwen-coder", "params": { "maxTokens": 16384 } },
-        "/fireworks/models/kimi-k2p5": { "alias": "kimi", "params": { "maxTokens": 8192 } }
+        "openrouter/mistralai/ministral-14b-2512": {
+          "alias": "router"
+        },
+        "openrouter/qwen/qwen3-coder-next": {
+          "alias": "default",
+          "params": {
+            "maxTokens": 8192
+          }
+        },
+        "openrouter/google/gemini-2.5-flash": {
+          "alias": "gemini",
+          "params": {
+            "maxTokens": 16384
+          }
+        },
+        "openrouter/openai/gpt-5.3-codex": {
+          "alias": [
+            "codex",
+            "codex53"
+          ],
+          "params": {
+            "maxTokens": 16384
+          }
+        },
+        "openrouter/anthropic/claude-sonnet-4.6": {
+          "alias": "sonnet",
+          "params": {
+            "maxTokens": 16384
+          }
+        },
+        "openrouter/anthropic/claude-haiku-4.5": {
+          "alias": "writer",
+          "params": {
+            "maxTokens": 16384
+          }
+        },
+        "openrouter/qwen/qwen3-coder-plus": {
+          "alias": "qwen-coder",
+          "params": {
+            "maxTokens": 16384
+          }
+        },
+        "/fireworks/models/kimi-k2p5": {
+          "alias": "kimi",
+          "params": {
+            "maxTokens": 8192
+          }
+        }
       }
     }
   },
@@ -22,13 +65,44 @@
     "providers": {
       "openrouter": {
         "models": [
-          { "id": "mistralai/ministral-14b-2512", "name": "Ministral 14B (router)" },
-          { "id": "qwen/qwen3-coder-next", "name": "Qwen Coder Next (default)" },
-          { "id": "google/gemini-2.5-flash", "name": "Gemini 2.5 Flash" },
-          { "id": "openai/gpt-5.3-codex", "name": "GPT-5.3 Codex" },
-          { "id": "anthropic/claude-sonnet-4.6", "name": "Claude Sonnet 4.6" },
-          { "id": "anthropic/claude-haiku-4.5", "name": "Claude Haiku (writer)" },
-          { "id": "qwen/qwen3-coder-plus", "name": "Qwen Coder Plus" }
+          {
+            "id": "mistralai/ministral-14b-2512",
+            "name": "Ministral 14B (router)"
+          },
+          {
+            "id": "qwen/qwen3-coder-next",
+            "name": "Qwen Coder Next (default)"
+          },
+          {
+            "id": "google/gemini-2.5-flash",
+            "name": "Gemini 2.5 Flash"
+          },
+          {
+            "id": "openai/gpt-5.3-codex",
+            "name": "GPT-5.3 Codex"
+          },
+          {
+            "id": "anthropic/claude-sonnet-4.6",
+            "name": "Claude Sonnet 4.6"
+          },
+          {
+            "id": "anthropic/claude-haiku-4.5",
+            "name": "Claude Haiku (writer)"
+          },
+          {
+            "id": "qwen/qwen3-coder-plus",
+            "name": "Qwen Coder Plus"
+          }
+        ]
+      },
+      "fireworks": {
+        "baseUrl": "https://api.fireworks.ai/inference/v1",
+        "api": "openai-completions",
+        "models": [
+          {
+            "id": "models/kimi-k2p5",
+            "name": "Kimi K2.5"
+          }
         ]
       }
     }

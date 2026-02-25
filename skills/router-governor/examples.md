@@ -8,7 +8,7 @@
 ## Example: complex debugging
 
 - User: "Why is cloud bot timing out repeatedly? Analyze logs and propose fixes."
-- Action: Escalate to worker model (`default`) immediately.
+- Action: Escalate to worker model (`default`) immediately. Router must post handoff line first, e.g. `[→ **default** | intent: debugging | reason: debugging]`.
 
 ## Example: loop prevention
 

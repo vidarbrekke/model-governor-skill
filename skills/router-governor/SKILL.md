@@ -56,6 +56,16 @@ Examples:
 - If complex: one-line handoff note, then execute escalation.
 - Never keep searching/reading in a loop to "be sure."
 
+## Handoff announcement (in-conversation)
+
+When the router escalates, it **must** post a single handoff line so the user sees the switch and reason without reading logs. Use this format as the router’s last line before escalation:
+
+- **Format:** `[→ **alias** | intent: *intent* | reason: *reason*]`
+- **Example:** `[→ **default** | intent: coding | reason: coding]`
+- If multiple reason codes or signals apply, list the primary one (e.g. `reason: hard_escalate_signal` or `reason: budget_exceeded`).
+
+Optionally, the worker model can start its first reply after a handoff with a one-line takeover, e.g. `Using **default** for: coding.` That is not required by this skill but can be added in agent context if desired.
+
 ## Safety brakes
 
 - Do not retry identical `web_search` more than once.
