@@ -1,0 +1,15 @@
+{
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "router",
+        "fallbacks": ["default", "gemini"]
+      },
+      "models": {
+        "openrouter/mistralai/ministral-14b-2512": { "alias": "router" },
+        "openrouter/qwen/qwen3-coder-next": { "alias": "default" },
+        "openrouter/google/gemini-2.5-flash": { "alias": "gemini" }
+      }
+    }
+  }
+}

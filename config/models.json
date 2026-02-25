@@ -1,0 +1,9 @@
+{
+  "mistral": "openrouter/mistralai/ministral-14b-2512",
+  "gemini": "openrouter/google/gemini-2.5-flash",
+  "qwen": "openrouter/qwen/qwen3-coder-next",
+  "codex": "openrouter/openai/gpt-5.3-codex",
+  "sonnet": "openrouter/anthropic/claude-sonnet-4.6",
+  "default": "openrouter/qwen/qwen3-coder-next",
+  "router": "openrouter/mistralai/ministral-14b-2512"
+}
