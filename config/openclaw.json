@@ -16,5 +16,21 @@
         "/fireworks/models/kimi-k2p5": { "alias": "kimi", "params": { "maxTokens": 8192 } }
       }
     }
+  },
+  "models": {
+    "mode": "merge",
+    "providers": {
+      "openrouter": {
+        "models": [
+          { "id": "mistralai/ministral-14b-2512", "name": "Ministral 14B (router)" },
+          { "id": "qwen/qwen3-coder-next", "name": "Qwen Coder Next (default)" },
+          { "id": "google/gemini-2.5-flash", "name": "Gemini 2.5 Flash" },
+          { "id": "openai/gpt-5.3-codex", "name": "GPT-5.3 Codex" },
+          { "id": "anthropic/claude-sonnet-4.6", "name": "Claude Sonnet 4.6" },
+          { "id": "anthropic/claude-haiku-4.5", "name": "Claude Haiku (writer)" },
+          { "id": "qwen/qwen3-coder-plus", "name": "Qwen Coder Plus" }
+        ]
+      }
+    }
   }
 }

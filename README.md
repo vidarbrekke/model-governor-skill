@@ -7,7 +7,7 @@ One repo for **model governance** on OpenClaw: canonical model aliases (OpenRout
 | Path | Purpose |
 |------|--------|
 | **config/models.json** | Alias → OpenRouter model ID (`router`, `default`, `codex`, etc.). |
-| **config/openclaw.json** | Snippet: primary/fallbacks and `agents.defaults.models` shape. Merge into live config. **Only** `router`, `default`, and `gemini` are wired here; `codex` and `sonnet` are available for manual override or future escalation tiers. |
+| **config/openclaw.json** | Snippet: primary/fallbacks, `agents.defaults.models` (allowlist), and `models.providers.openrouter` (provider catalog). Merge into live config. |
 | **config/policy.json** | Machine-checkable routing policy (budgets, signals, intent routing, reason codes). Logging section is a schema for runtime; implement in OpenClaw when hooks exist. |
 | **skills/router-governor/SKILL.md** | Router-governor skill definition (routing policy, escalation rules). Install to `~/.openclaw/skills/router-governor/` or `workspace/skills/router-governor/`. |
 | **skills/router-governor/examples.md** | Example prompts and escalation cases. |
@@ -36,7 +36,8 @@ Ensure OpenClaw has the OpenRouter provider and API key configured; then use the
    `cp -r skills/router-governor ~/.openclaw/skills/`  
    or, on a workspace layout:  
    `cp -r skills/router-governor <workspace>/skills/`
-4. Live config and skills live in `~/.openclaw/` (or your workspace). Do not rely on this repo path at runtime.
+4. **Allowlist + provider catalog:** OpenClaw only allows models that are (a) in `agents.defaults.models` (allowlist for `/model`) and (b) in the provider’s model catalog. The snippet includes `models.providers.openrouter.models` so all router-list OpenRouter models (e.g. `openrouter/openai/gpt-5.3-codex`) are in the catalog. Merge the full **config/openclaw.json** snippet (including the `models` block) into your live config so you don’t get “Model … is not allowed.” Non-OpenRouter models (e.g. `kimi` via Fireworks) need that provider’s catalog configured separately.
+5. Live config and skills live in `~/.openclaw/` (or your workspace). Do not rely on this repo path at runtime.
 
 ## What is not in this repo
 
