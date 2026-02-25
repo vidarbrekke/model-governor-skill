@@ -5,5 +5,9 @@
   "codex": "openrouter/openai/gpt-5.3-codex",
   "sonnet": "openrouter/anthropic/claude-sonnet-4.6",
   "default": "openrouter/qwen/qwen3-coder-next",
-  "router": "openrouter/mistralai/ministral-14b-2512"
+  "router": "openrouter/mistralai/ministral-14b-2512",
+  "writer": "openrouter/anthropic/claude-haiku-4.5",
+  "generalist": "openrouter/google/gemini-2.5-flash",
+  "qwen-coder": "openrouter/qwen/qwen3-coder-plus",
+  "kimi": "/fireworks/models/kimi-k2p5"
 }

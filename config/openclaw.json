@@ -7,8 +7,13 @@
       },
       "models": {
         "openrouter/mistralai/ministral-14b-2512": { "alias": "router" },
-        "openrouter/qwen/qwen3-coder-next": { "alias": "default" },
-        "openrouter/google/gemini-2.5-flash": { "alias": "gemini" }
+        "openrouter/qwen/qwen3-coder-next": { "alias": "default", "params": { "maxTokens": 8192 } },
+        "openrouter/google/gemini-2.5-flash": { "alias": "gemini", "params": { "maxTokens": 16384 } },
+        "openrouter/openai/gpt-5.3-codex": { "alias": "codex", "params": { "maxTokens": 16384 } },
+        "openrouter/anthropic/claude-sonnet-4.6": { "alias": "sonnet", "params": { "maxTokens": 16384 } },
+        "openrouter/anthropic/claude-haiku-4.5": { "alias": "writer", "params": { "maxTokens": 16384 } },
+        "openrouter/qwen/qwen3-coder-plus": { "alias": "qwen-coder", "params": { "maxTokens": 16384 } },
+        "/fireworks/models/kimi-k2p5": { "alias": "kimi", "params": { "maxTokens": 8192 } }
       }
     }
   }
