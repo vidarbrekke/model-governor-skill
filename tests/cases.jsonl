@@ -1,0 +1,24 @@
+{"id":"T001","prompt":"What is OpenClaw? Give me a 2-sentence explanation.","expected_alias":"router","expected_intent":"simple_qa","max_router_tool_calls":0}
+{"id":"T002","prompt":"Summarize the differences between Mistral Small and Ministral 14B in plain English.","expected_alias":"router","expected_intent":"simple_qa","max_router_tool_calls":0}
+{"id":"T010","prompt":"Here is a stack trace. Find the likely root cause and propose a fix:\nError: ECONNREFUSED 127.0.0.1:5432\n...","expected_alias":"default","expected_intent":"debugging","max_router_tool_calls":1}
+{"id":"T011","prompt":"My unit tests started failing after upgrading dependencies. Help me debug and suggest changes.","expected_alias":"default","expected_intent":"debugging","max_router_tool_calls":1}
+{"id":"T012","prompt":"I need a patch-style diff to refactor this function for readability and performance:\n```go\nfunc X(){/* long */}\n```","expected_alias":"default","expected_intent":"coding","max_router_tool_calls":1}
+{"id":"T020","prompt":"Review this GitHub repo and identify architectural improvements across multiple packages.","expected_alias":"codex","expected_intent":"large_codebase_review","max_router_tool_calls":1}
+{"id":"T021","prompt":"I have 8 files. Propose a new module boundary and refactor plan with diff snippets.","expected_alias":"codex","expected_intent":"deep_refactor","max_router_tool_calls":1}
+{"id":"T022","prompt":"Design a cost-aware routing system for agents with a rubric + logging + eval harness.","expected_alias":"codex","expected_intent":"deep_refactor","max_router_tool_calls":1}
+{"id":"T030","prompt":"Edit this OpenClaw config to add a new model alias and make it the default worker.","expected_alias":"default","expected_intent":"config_edit","max_router_tool_calls":1}
+{"id":"T031","prompt":"Given this JSON, update keys and keep backwards compatibility:\n{\n  \"agents.defaults.model.primary\": \"router\"\n}\n","expected_alias":"default","expected_intent":"config_edit","max_router_tool_calls":1}
+{"id":"T040","prompt":"Write a careful customer-facing email explaining a billing mistake, with a calm tone.","expected_alias":"sonnet","expected_intent":"writing_high_stakes","max_router_tool_calls":1}
+{"id":"T041","prompt":"Rewrite this policy doc to be clearer and legally cautious.","expected_alias":"sonnet","expected_intent":"writing_high_stakes","max_router_tool_calls":1}
+{"id":"T050","prompt":"What changed in the last 60 days regarding OpenClaw MCP support? Please cite sources.","expected_alias":"gemini","expected_intent":"web_research","max_router_tool_calls":1}
+{"id":"T051","prompt":"Find the latest docs about model routing in OpenClaw and summarize.","expected_alias":"gemini","expected_intent":"web_research","max_router_tool_calls":1}
+{"id":"T060","prompt":"Here is a long pasted log (10k chars)...\n<LOG>\nAAAA...\n</LOG>\nIdentify issues and fixes.","expected_alias":"default","expected_intent":"debugging","max_router_tool_calls":1}
+{"id":"T061","prompt":"Here is 500 lines of code. Optimize it.","expected_alias":"codex","expected_intent":"deep_refactor","max_router_tool_calls":1}
+{"id":"T070","prompt":"Can you generate Dockerfile + docker-compose for my node service and explain choices?","expected_alias":"default","expected_intent":"coding","max_router_tool_calls":1}
+{"id":"T071","prompt":"Set up Kubernetes manifests + HPA for this service.","expected_alias":"codex","expected_intent":"deep_refactor","max_router_tool_calls":1}
+{"id":"T080","prompt":"I need SQL to migrate a table safely and handle rollback cases.","expected_alias":"default","expected_intent":"coding","max_router_tool_calls":1}
+{"id":"T081","prompt":"Audit this OAuth flow for security issues and recommend changes.","expected_alias":"codex","expected_intent":"deep_refactor","max_router_tool_calls":1}
+{"id":"T090","prompt":"I'm not sure what I need. I want to reduce cost but keep answer quality high.","expected_alias":"router","expected_intent":"triage_only","max_router_tool_calls":1}
+{"id":"T091","prompt":"I have two goals: create a skill, and also build tests and logging. What's the plan?","expected_alias":"default","expected_intent":"coding","max_router_tool_calls":1}
+{"id":"T100","prompt":"Give me a 1-line bash command to find large files in a directory.","expected_alias":"router","expected_intent":"simple_qa","max_router_tool_calls":0}
+{"id":"T101","prompt":"Write a bash script that walks a repo, generates a report, and posts to Slack.","expected_alias":"default","expected_intent":"coding","max_router_tool_calls":1}

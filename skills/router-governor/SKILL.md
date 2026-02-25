@@ -36,6 +36,7 @@ If the user asks whether something is installed/active/running on this server, r
    - active: yes/no
    - automation present: yes/no
 3. Only use `web_search` after local checks if user asks for upstream docs/context.
+4. **Escape hatch:** If local checks are unavailable, sandboxed, or not permitted (e.g. no file/process access), escalate immediately to the worker model instead of guessing or looping.
 
 Examples:
 - "is X installed and active on this server?"

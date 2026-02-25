@@ -7,9 +7,11 @@ One repo for **model governance** on OpenClaw: canonical model aliases (OpenRout
 | Path | Purpose |
 |------|--------|
 | **config/models.json** | Alias → OpenRouter model ID (`router`, `default`, `codex`, etc.). |
-| **config/openclaw.json** | Snippet: primary/fallbacks and `agents.defaults.models` shape. Merge into live config. |
+| **config/openclaw.json** | Snippet: primary/fallbacks and `agents.defaults.models` shape. Merge into live config. **Only** `router`, `default`, and `gemini` are wired here; `codex` and `sonnet` are available for manual override or future escalation tiers. |
+| **config/policy.json** | Machine-checkable routing policy (budgets, signals, intent routing, reason codes). Logging section is a schema for runtime; implement in OpenClaw when hooks exist. |
 | **skills/router-governor/SKILL.md** | Router-governor skill definition (routing policy, escalation rules). Install to `~/.openclaw/skills/router-governor/` or `workspace/skills/router-governor/`. |
 | **skills/router-governor/examples.md** | Example prompts and escalation cases. |
+| **tests/cases.jsonl** | Routing test cases (expected alias/intent per prompt); for future test harness. |
 
 These are the files that **make up the model-governor / router-governor feature**. Other paths on a live server (e.g. `openclaw.json` root, `workspace/docs/CLOUD_AGENT_CONTEXT.md`, `workspace/memory/`, `workspace/scripts/`) are **workspace or machine-specific** and are **not** part of this repo. Install by copying/merging from this repo into the live environment.
 
@@ -19,6 +21,8 @@ These are the files that **make up the model-governor / router-governor feature*
 - **Worker / default:** `default` or `qwen` for coding.
 - **Fallbacks:** `gemini`, `sonnet`.
 - **Advanced coding:** `codex` (gpt-5.3-codex). Do not use gpt-5.2-codex.
+
+The snippet in **config/openclaw.json** only wires `router`, `default`, and `gemini`. Aliases `codex` and `sonnet` are defined in **config/models.json** and are available for manual override or future escalation tiers; add them to your live config if you use those tiers.
 
 Ensure OpenClaw has the OpenRouter provider and API key configured; then use these aliases in agent config or `/model <alias>`.
 

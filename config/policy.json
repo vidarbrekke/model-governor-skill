@@ -1,0 +1,114 @@
+{
+  "version": "0.1.0",
+  "router_alias": "router",
+  "default_worker_alias": "default",
+  "fallback_worker_alias": "gemini",
+  "escalation_tiers": ["default", "codex", "sonnet", "gemini"],
+
+  "budgets": {
+    "router": {
+      "max_tool_calls": 2,
+      "max_output_chars": 900,
+      "max_turns_before_forced_escalation": 1
+    }
+  },
+
+  "signals": {
+    "hard_escalate_if_any": [
+      "contains_patch_request",
+      "contains_multi_file_request",
+      "contains_stack_trace_or_error_log",
+      "contains_code_block",
+      "contains_cli_commands_request",
+      "contains_security_sensitive_request",
+      "mentions_performance_optimization",
+      "mentions_refactor_architecture",
+      "mentions_test_suite_or_ci",
+      "mentions_database_or_sql",
+      "mentions_kubernetes_or_docker",
+      "mentions_oauth_or_auth_flows",
+      "long_input"
+    ],
+    "soft_escalate_if_any": [
+      "mentions_uncertainty_or_guessing",
+      "requires_web_freshness",
+      "ambiguous_requirements",
+      "more_than_one_goal"
+    ],
+    "long_input_thresholds": {
+      "chars": 7000,
+      "lines": 220
+    }
+  },
+
+  "intent_routing": {
+    "simple_qa": { "worker": "router", "reason": "simple_qa" },
+    "triage_only": { "worker": "router", "reason": "triage_only" },
+
+    "coding": { "worker": "default", "reason": "coding" },
+    "debugging": { "worker": "default", "reason": "debugging" },
+    "config_edit": { "worker": "default", "reason": "config_edit" },
+
+    "deep_refactor": { "worker": "codex", "reason": "deep_refactor" },
+    "large_codebase_review": { "worker": "codex", "reason": "large_codebase_review" },
+
+    "writing_high_stakes": { "worker": "sonnet", "reason": "writing_high_stakes" },
+
+    "web_research": { "worker": "gemini", "reason": "web_research" }
+  },
+
+  "reason_codes": [
+    "simple_qa",
+    "triage_only",
+    "coding",
+    "debugging",
+    "config_edit",
+    "deep_refactor",
+    "large_codebase_review",
+    "writing_high_stakes",
+    "web_research",
+    "hard_escalate_signal",
+    "soft_escalate_signal",
+    "budget_exceeded",
+    "repeat_error_signature",
+    "router_disallowed_action"
+  ],
+
+  "repeat_failure_rules": {
+    "repeat_error_signature_escalate_after": 2,
+    "signature_keys": ["error_code", "error_message_prefix", "tool_name"]
+  },
+
+  "disallowed_router_actions": {
+    "router_must_not": [
+      "produce_final_code_for_nontrivial_tasks",
+      "perform_more_than_budgeted_tool_calls",
+      "attempt_multi_step_debugging"
+    ],
+    "router_should_do": [
+      "classify_intent",
+      "extract_constraints",
+      "choose_worker",
+      "hand_off_with_minimal_context"
+    ]
+  },
+
+  "logging": {
+    "_comment": "Schema for runtime; implement in OpenClaw/runtime layer when hooks exist.",
+    "enabled": true,
+    "format": "jsonl",
+    "fields": [
+      "timestamp",
+      "request_id",
+      "session_id",
+      "chosen_alias",
+      "intent",
+      "reason_codes",
+      "signals",
+      "router_tool_calls",
+      "tokens_in",
+      "tokens_out",
+      "estimated_cost"
+    ]
+  }
+}
