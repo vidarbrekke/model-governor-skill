@@ -1,19 +1,33 @@
-# model-governor-skill
+# router-governor / model-governor skill
 
-Model governance config for OpenClaw: canonical model aliases with OpenRouter provider prefixes. Use with the router-governor skill so the router and worker models resolve correctly.
+One repo for **model governance** on OpenClaw: canonical model aliases (OpenRouter) and router/default/fallback wiring. Use this for **version control and development**; installation into the live OpenClaw environment is separate (see below).
 
-## config/models.json
+## What’s in this repo
 
-Maps friendly aliases to full OpenRouter model IDs (e.g. `openrouter/mistralai/ministral-14b-2512`). Copy or merge into your OpenClaw `openclaw.json` under `agents.defaults.models` (or use as reference for `llm.modelAliases`).
+- **config/models.json** — Alias → OpenRouter model ID (e.g. `router`, `default`, `codex`).
+- **config/openclaw.json** — Snippet for OpenClaw: primary/fallbacks and `agents.defaults.models` shape. Merge into your live config.
 
-## config/openclaw.json
+## Usage (after installation)
 
-Optional snippet showing how to wire these models into OpenClaw (allowlist + primary/fallbacks). Merge relevant keys into your main `~/.openclaw/openclaw.json` or workspace config.
+- **Router:** `router` alias (lightweight triage).
+- **Worker / default:** `default` or `qwen` for coding.
+- **Fallbacks:** `gemini`, `sonnet`.
+- **Advanced coding:** `codex` (gpt-5.3-codex). Do not use gpt-5.2-codex.
 
-## Usage
+Ensure OpenClaw has the OpenRouter provider and API key configured; then use these aliases in agent config or `/model <alias>`.
 
-- **Router:** Prefer `router` alias (lightweight triage).
-- **Worker / default:** Prefer `default` or `qwen` for coding tasks.
-- **Fallbacks:** Use `gemini` or `sonnet` as needed.
+## Installation (into live OpenClaw)
 
-Ensure your OpenClaw instance has the corresponding provider (e.g. OpenRouter) and API key configured; then reference these aliases in agent config or `/model <alias>`.
+**This repo does not set any active parameters by itself.** Repo directories are for **development and version control**, not for live use. To use with OpenClaw:
+
+1. Copy or merge **config/models.json** into your live config (e.g. `~/.openclaw/openclaw.json` under `agents.defaults.models` or `llm.modelAliases`).
+2. Optionally merge the relevant keys from **config/openclaw.json** (primary/fallbacks) into the same file.
+3. Live config lives in `~/.openclaw/` (or your workspace config). Do not rely on this repo path at runtime.
+
+## Version control
+
+This single folder is the git repo. Push to GitHub for backup and collaboration. On the server or another machine, clone this repo for development; then follow the installation steps above to copy/merge into that environment’s live OpenClaw config.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
