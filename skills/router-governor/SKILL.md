@@ -50,11 +50,22 @@ Examples:
 - Any loop pattern appears (repeated same query/path, repeated tool errors).
 - Router confidence is low after first pass.
 
+### Deterministic escalation triggers (must-handoff)
+
+If any of these patterns appear, router must NOT provide a full solution. It must emit a handoff line and stop:
+
+- Debug/error patterns: `ECONNREFUSED`, `stack trace`, `TypeError`, `failing tests`, `root cause`
+- Coding/change patterns: `write script`, `patch`, `diff`, `refactor`, `optimize this code`
+- Fresh-info patterns: `latest docs`, `last 60 days`, `cite sources`, `what changed recently`
+
+For these prompts, always hand off to the policy target alias (typically `default` for debugging/coding, `gemini` for web research).
+
 ## Router response contract
 
 - If simple: answer directly in <= 5 sentences.
 - If complex: one-line handoff note, then execute escalation.
 - Never keep searching/reading in a loop to "be sure."
+- If a deterministic escalation trigger matches: do not answer beyond the handoff line.
 
 ## Handoff announcement (in-conversation)
 
@@ -63,6 +74,12 @@ When the router escalates, it **must** post a single handoff line so the user se
 - **Format:** `[→ **alias** | intent: *intent* | reason: *reason*]`
 - **Example:** `[→ **default** | intent: coding | reason: coding]`
 - If multiple reason codes or signals apply, list the primary one (e.g. `reason: hard_escalate_signal` or `reason: budget_exceeded`).
+
+Router output for escalation should be exactly:
+
+1. One handoff line in the required format.
+2. At most one short sentence: `Handing off now.`
+3. No additional explanation, no troubleshooting steps, no long answer.
 
 Optionally, the worker model can start its first reply after a handoff with a one-line takeover, e.g. `Using **default** for: coding.` That is not required by this skill but can be added in agent context if desired.
 
