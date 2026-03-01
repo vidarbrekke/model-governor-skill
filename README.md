@@ -124,12 +124,15 @@ So **yes, the solution logs model changes and the reason for the change** in tha
 - **`npm run cases`** — Same cases via CLI; exits 1 on first failure and prints expected vs got.
 - **`npm run build`** — Compiles TypeScript to `dist/`.
 - **`npm run log:report`** — Reads the log and prints a structured summary of when/why model changes happened.
+- **`npm run proxy`** — Run the gateway proxy (listens on `OPENCLAW_GATEWAY_PROXY_PORT`, forwards to `OPENCLAW_GATEWAY_BACKEND_URL`). When `model=router`, calls the governor and either returns its response or forwards with the chosen worker model.
 
 Add new cases to `tests/cases.jsonl` (one JSON object per line with `id`, `prompt`, `expected_alias`, `expected_intent`) and expand to 30–50 real prompts to tune misroutes.
 
-### Verifying logging and handoff (without OpenClaw patch)
+### Verifying logging and handoff
 
-OpenClaw’s npm runtime does not yet invoke the governor when the active model is `router`; it only uses the skill text (SKILL.md). To **verify that the governor and JSONL logging work**:
+When the **gateway proxy** is installed (see [Server layout](#server-layout-eg-linode)), the governor runs automatically for every request with `model=router`: the proxy calls `handle()`, then either returns the governor’s response or forwards the request to the gateway with the chosen worker model. No OpenClaw source changes are required.
+
+To **verify** without the proxy (e.g. locally):
 
 1. Build and run the **bridge CLI** from the governor repo (set `ROUTER_GOVERNOR_LOG_PATH` so the log is written where you can inspect it, e.g. OpenClaw’s log dir or `/tmp`):
 
@@ -150,8 +153,6 @@ OpenClaw’s npm runtime does not yet invoke the governor when the active model 
 
 If you want OpenClaw to answer questions like "when and why did models change?", have it read the report output (or the raw JSONL) and summarize by `chosen_alias`, `intent`, and `reason_codes`.
 
-To **wire the governor into OpenClaw** so it runs automatically when the user selects `/model router`, the OpenClaw runtime would need to call `handle()` (or this CLI) when the active model alias is `router`, then map `SkillOutput` to a response or model switch. Until that hook exists in OpenClaw, use the bridge CLI for verification and for any custom integration (e.g. a wrapper or script that invokes it when you detect router model).
-
 ## Installation (into live OpenClaw)
 
 **This repo does not set any active parameters by itself.** Repo directories are for **development and version control**, not for live use. To use with OpenClaw:
@@ -170,7 +171,7 @@ On the server, keep this repo under the OpenClaw workspace so one script can bui
   npm run activate
   ```
 
-  This runs `scripts/post-pull-activate.sh`, which: (1) `npm install` and `npm run build` and `npm test`, (2) copies **skills/router-governor/** into **workspace/skills/router-governor/** so OpenClaw loads it, (3) writes **workspace/.env.router-governor** (shell format) and **workspace/.env.router-governor.systemd** (systemd `EnvironmentFile` format) with `OPENCLAW_HOME` and `ROUTER_GOVERNOR_POLICY_PATH`, and (4) if `openclaw-gateway.service` exists as a user service, auto-wires the systemd env file and restarts the service. OpenClaw must still call the governor `handle()` (or bridge) when the router model is selected (see [Verifying logging and handoff](#verifying-logging-and-handoff-without-openclaw-patch)).
+  This runs `scripts/post-pull-activate.sh`, which: (1) `npm install` and `npm run build` and `npm test`, (2) copies **skills/router-governor/** into **workspace/skills/router-governor/** so OpenClaw loads it, (3) writes **workspace/.env.router-governor** (shell format) and **workspace/.env.router-governor.systemd** (systemd `EnvironmentFile` format) with `OPENCLAW_HOME` and `ROUTER_GOVERNOR_POLICY_PATH`, (4) if `openclaw-gateway.service` exists as a user service, sets the gateway to listen on port **18790** and wires the env file, and (5) installs **openclaw-gateway-proxy.service**, which listens on **18789** and runs the governor for every request with `model=router` (respond or hand off to the chosen worker). Clients keep using port 18789; the proxy forwards non-router and handoff traffic to the gateway on 18790.
 
 - If the repo is **not** under `.../workspace/repositories/router-governor`, set `OPENCLAW_WORKSPACE` before running activate:
 

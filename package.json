@@ -10,7 +10,8 @@
     "cases": "node --loader ts-node/esm tests/run-cases.ts",
     "bridge": "node dist/src/cli.js",
     "log:report": "node dist/src/log-report.js --hours 24",
-    "activate": "bash scripts/post-pull-activate.sh"
+    "activate": "bash scripts/post-pull-activate.sh",
+    "proxy": "node dist/src/gateway-proxy.js"
   },
   "devDependencies": {
     "ts-node": "latest",

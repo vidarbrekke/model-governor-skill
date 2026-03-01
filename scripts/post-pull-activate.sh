@@ -83,14 +83,28 @@ if systemctl --user status openclaw-gateway.service >/dev/null 2>&1; then
   fi
 
   printf "EnvironmentFile=-%s\n" "$SYSTEMD_ENV_FILE" >> "$OVERRIDE_FILE"
+  # Run gateway on backend port so proxy can listen on public port
+  if ! grep -q 'OPENCLAW_GATEWAY_PORT=18790' "$OVERRIDE_FILE"; then
+    printf "Environment=OPENCLAW_GATEWAY_PORT=18790\n" >> "$OVERRIDE_FILE"
+  fi
   systemctl --user daemon-reload
   systemctl --user restart openclaw-gateway.service
-  echo "--- Wired $SYSTEMD_ENV_FILE into openclaw-gateway.service and restarted it"
+  echo "--- Wired $SYSTEMD_ENV_FILE into openclaw-gateway.service, gateway port 18790, restarted"
+
+  # Install and start gateway proxy so router model requests go through governor
+  PROXY_UNIT="$HOME/.config/systemd/user/openclaw-gateway-proxy.service"
+  PROXY_OVERRIDE_DIR="$HOME/.config/systemd/user/openclaw-gateway-proxy.service.d"
+  mkdir -p "$PROXY_OVERRIDE_DIR"
+  sed "s|%REPO_ROOT%|$REPO_ROOT|g" "$REPO_ROOT/scripts/systemd/openclaw-gateway-proxy.service" > "$PROXY_UNIT"
+  printf "[Service]\nEnvironmentFile=-%s\n" "$SYSTEMD_ENV_FILE" > "$PROXY_OVERRIDE_DIR/override.conf"
+  systemctl --user daemon-reload
+  systemctl --user enable openclaw-gateway-proxy.service
+  systemctl --user start openclaw-gateway-proxy.service
+  echo "--- Installed and started openclaw-gateway-proxy.service (listens 18789, forwards to gateway 18790)"
 fi
 
 echo ""
-echo "Activation done. To make the governor active at runtime:"
-echo "  1. Ensure the process that starts OpenClaw sources: source $ENV_FILE"
-echo "  2. For systemd user service, use EnvironmentFile=$SYSTEMD_ENV_FILE (this script auto-wires openclaw-gateway when present)."
-echo "  3. OpenClaw must call the governor handle() (or bridge CLI) when the router model is selected; until that hook exists, use the bridge CLI for verification."
-echo "  4. Run log report: source $ENV_FILE && npm run log:report (from this repo)."
+echo "Activation done. Router-governor is active when:"
+echo "  1. Skill is in workspace/skills/router-governor (done above)."
+echo "  2. openclaw-gateway runs with governor env and port 18790; openclaw-gateway-proxy listens on 18789 and runs governor for model=router (done above if gateway service exists)."
+echo "  3. Run log report: source $ENV_FILE && npm run log:report (from this repo)."

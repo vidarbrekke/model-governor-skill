@@ -1,0 +1,15 @@
+[Unit]
+Description=OpenClaw Gateway Proxy (router-governor)
+After=openclaw-gateway.service
+Requires=openclaw-gateway.service
+
+[Service]
+Environment=OPENCLAW_GATEWAY_PROXY_PORT=18789
+Environment=OPENCLAW_GATEWAY_BACKEND_URL=http://127.0.0.1:18790
+WorkingDirectory=%REPO_ROOT%
+ExecStart=/usr/bin/node %REPO_ROOT%/dist/src/gateway-proxy.js
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
