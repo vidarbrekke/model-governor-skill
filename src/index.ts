@@ -46,13 +46,13 @@ export async function handle(input: SkillInput, ctx: SkillContext): Promise<Skil
       tokens_out: ctx.tokensOut ?? null,
       estimated_cost: ctx.estimatedCost ?? null
     };
-    if (isShadowMode) logEntry.shadow_chosen_alias = decision.chosenAlias;
+    if (isShadowMode()) logEntry.shadow_chosen_alias = decision.chosenAlias;
     appendJsonl(resolveLogPath(), logEntry);
   }
 
-  const effectiveAlias = isShadowMode ? policy.default_worker_alias : decision.chosenAlias;
+  const effectiveAlias = isShadowMode() ? policy.default_worker_alias : decision.chosenAlias;
 
-  if (decision.chosenAlias === policy.router_alias) {
+  if (effectiveAlias === policy.router_alias) {
     const raw = boundedRouterResponse(input.text);
     const text = raw.slice(0, policy.budgets.router.max_output_chars);
     return { mode: "respond", text };
