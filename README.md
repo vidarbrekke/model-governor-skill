@@ -1,6 +1,27 @@
 # router-governor / model-governor skill
 
-One repo for **model governance** on OpenClaw: canonical model aliases (OpenRouter), router/default/fallback wiring, and the **router-governor skill** (routing policy and escalation rules). Use this for **version control and development**; installation into the live OpenClaw environment is separate (see below).
+## What this is
+
+**Router-governor** is a **model governance** layer for [OpenClaw](https://github.com/OpenClaw/OpenClaw). It decides which AI model should handle each user request—a lightweight “router” for simple questions, or a more capable “worker” (e.g. coding, debugging, web research)—so you use the cheapest model that can reliably do the job.
+
+**When it applies:** This logic runs only when the **router** model is selected (e.g. `/model router` or your agent is set to use the `router` alias). If the user has already chosen a different model (e.g. `default` or `codex`), that model handles the request directly and the governor is not involved.
+
+## What it does
+
+- **Triages incoming requests** using simple, fast rules (no extra model calls): e.g. “contains code”, “stack trace”, “needs latest info”, “multi-step refactor”.
+- **Picks a target model** from your configured aliases (`router`, `default`, `codex`, `sonnet`, `gemini`) and either lets the router answer in-place (short, bounded) or hands off to that model with a small context envelope.
+- **Enforces budgets and safety**: limits how many tool calls and turns the router may use, escalates when the same error repeats, and keeps the router from doing heavy work itself.
+- **Logs every decision** (e.g. JSONL) so you can see why something was routed where and tune the policy from real usage.
+
+## Why it works
+
+- **Deterministic and cheap:** Routing uses regex-style checks and policy only—no network or extra LLM call—so it’s fast, predictable, and easy to test.
+- **One source of truth:** All behavior is driven by `config/policy.json` (signals, budgets, intent→model mapping). You change policy, not code, to tune behavior.
+- **Clear split of roles:** The router only classifies and hands off; workers do the actual coding, research, or writing. That avoids “router does the whole job” and keeps cost and behavior under control.
+
+This repo holds the **config, skill text, and code** for that layer. You use it for version control and development; installing into a live OpenClaw setup is a separate step (see [Installation](#installation-into-live-openclaw) below).
+
+---
 
 ## What’s in this repo (dev directory)
 
