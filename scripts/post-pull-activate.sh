@@ -76,7 +76,7 @@ if systemctl --user status openclaw-gateway.service >/dev/null 2>&1; then
   mkdir -p "$OVERRIDE_DIR"
 
   if [ -f "$OVERRIDE_FILE" ]; then
-    awk '!/^\s*EnvironmentFile=-\/root\/openclaw-stock-home\/\.openclaw\/workspace\/\.env\.router-governor\.systemd\s*$/' "$OVERRIDE_FILE" > "${OVERRIDE_FILE}.tmp"
+    awk '!/^\s*EnvironmentFile=-\/root\/openclaw-stock-home\/\.openclaw\/workspace\/\.env\.router-governor(\.systemd)?\s*$/' "$OVERRIDE_FILE" > "${OVERRIDE_FILE}.tmp"
     mv "${OVERRIDE_FILE}.tmp" "$OVERRIDE_FILE"
   else
     printf "[Service]\n" > "$OVERRIDE_FILE"
