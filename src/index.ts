@@ -4,7 +4,7 @@ import { loadPolicy } from "./policy.js";
 import { makeHandoffAnnouncement, route } from "./router.js";
 import { SkillContext, SkillInput, SkillOutput } from "./types.js";
 
-const policy = loadPolicy("config/policy.json");
+const policy = loadPolicy();
 
 function isShadowMode(): boolean {
   if (process.env.ROUTER_GOVERNOR_SHADOW_MODE === "1") return true;
@@ -12,6 +12,8 @@ function isShadowMode(): boolean {
 }
 
 function resolveLogPath(): string {
+  const envPath = process.env.ROUTER_GOVERNOR_LOG_PATH;
+  if (envPath) return envPath;
   const configured = policy.logging.path ?? ".openclaw/logs/model-governor.jsonl";
   return path.isAbsolute(configured) ? configured : path.join(process.cwd(), configured);
 }
@@ -47,7 +49,11 @@ export async function handle(input: SkillInput, ctx: SkillContext): Promise<Skil
       estimated_cost: ctx.estimatedCost ?? null
     };
     if (isShadowMode()) logEntry.shadow_chosen_alias = decision.chosenAlias;
-    appendJsonl(resolveLogPath(), logEntry);
+    try {
+      appendJsonl(resolveLogPath(), logEntry);
+    } catch (err) {
+      console.error("[router-governor] Failed to write JSONL log:", err);
+    }
   }
 
   const effectiveAlias = isShadowMode() ? policy.default_worker_alias : decision.chosenAlias;

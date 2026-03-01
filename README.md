@@ -53,6 +53,16 @@ Ensure OpenClaw has the OpenRouter provider and API key configured; then use the
 
 The `src/` tree implements **deterministic, policy-driven routing** so behavior is not prompt-only. Integrate it with OpenClaw’s skill runtime by calling the exported `handle()` function.
 
+### Runtime integration contract (v1)
+
+- **Entrypoint:** `handle(input: SkillInput, ctx: SkillContext): Promise<SkillOutput>` from `src/index.ts` (or `dist/index.js` after build). This is the only integration surface; no other exports are required for routing.
+- **Policy path:** Loaded once at module load. Default path is `config/policy.json` (relative to process cwd). Override with env `ROUTER_GOVERNOR_POLICY_PATH` (absolute or relative to cwd) so the runtime can point at the governor repo’s config when cwd is different (e.g. OpenClaw app root).
+- **Log path:** Override with env `ROUTER_GOVERNOR_LOG_PATH` to force an absolute path for the JSONL log; otherwise `policy.logging.path` is used (default `.openclaw/logs/model-governor.jsonl` relative to cwd).
+- **Failure fallback:** If `handle()` throws (e.g. policy load failed, or routing threw), the runtime **must** treat it as a handoff to `default_worker_alias` with a minimal reason (e.g. `reason_codes: ["governor_error"]`) and **must not** surface the error to the user as a broken response. Log the error server-side for diagnostics.
+- **Output mapping:**  
+  - `mode: "respond"` → send `text` as the assistant reply; no model switch.  
+  - `mode: "handoff"` → switch active model to `chosenAlias`, inject `announcement` (if present) into the conversation, and pass `handoff` to the worker (e.g. as system or first user message) so it receives `intent`, `reason_codes`, `signals`, `handoff_summary`, `original_user_text`.
+
 ### Contracts
 
 - **Policy:** Single source of truth is `config/policy.json`. Loaded at startup via `loadPolicy(path)`; invalid or missing required fields throw.
@@ -105,6 +115,21 @@ So **yes, the solution logs model changes and the reason for the change** in tha
 
 Add new cases to `tests/cases.jsonl` (one JSON object per line with `id`, `prompt`, `expected_alias`, `expected_intent`) and expand to 30–50 real prompts to tune misroutes.
 
+### Verifying logging and handoff (without OpenClaw patch)
+
+OpenClaw’s npm runtime does not yet invoke the governor when the active model is `router`; it only uses the skill text (SKILL.md). To **verify that the governor and JSONL logging work**:
+
+1. Build and run the **bridge CLI** from the governor repo (set `ROUTER_GOVERNOR_LOG_PATH` so the log is written where you can inspect it, e.g. OpenClaw’s log dir or `/tmp`):
+
+   ```bash
+   npm run build
+   ROUTER_GOVERNOR_LOG_PATH=/path/to/model-governor.jsonl node dist/src/cli.js "Debug this error: ECONNREFUSED 127.0.0.1:5432"
+   ```
+
+2. Check stdout for a `handoff` result and that the log file contains a line with `chosen_alias`, `intent`, `reason_codes`, and `signals`.
+
+To **wire the governor into OpenClaw** so it runs automatically when the user selects `/model router`, the OpenClaw runtime would need to call `handle()` (or this CLI) when the active model alias is `router`, then map `SkillOutput` to a response or model switch. Until that hook exists in OpenClaw, use the bridge CLI for verification and for any custom integration (e.g. a wrapper or script that invokes it when you detect router model).
+
 ## Installation (into live OpenClaw)
 
 **This repo does not set any active parameters by itself.** Repo directories are for **development and version control**, not for live use. To use with OpenClaw:
@@ -128,6 +153,16 @@ Add new cases to `tests/cases.jsonl` (one JSON object per line with `id`, `promp
 ## Version control
 
 This single folder is the git repo. Push to GitHub for backup and collaboration. On the server or another machine, clone this repo for development; then follow the installation steps above to copy/merge into that environment’s live OpenClaw config.
+
+## Troubleshooting / verified state
+
+When the governor runs (via bridge CLI or a future OpenClaw hook), the JSONL log line should look like:
+
+```json
+{"timestamp":"...","request_id":null,"session_id":null,"chosen_alias":"default","intent":"debugging","reason_codes":["debugging","hard_escalate_signal"],"signals":["contains_stack_trace_or_error_log"],"router_tool_calls":0,"tokens_in":null,"tokens_out":null,"estimated_cost":null}
+```
+
+If no log file appears, ensure `policy.logging.enabled` is `true`, the process has write access to the log directory, and (when not using the CLI) the runtime actually invokes `handle()` or the bridge when the router model is selected.
 
 ## License
 

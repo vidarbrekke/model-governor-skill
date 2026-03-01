@@ -71,8 +71,9 @@ function validatePolicy(obj: Partial<Policy>): asserts obj is Policy {
   assertStringArray(obj.logging.fields, "logging.fields");
 }
 
-export function loadPolicy(policyPath: string): Policy {
-  const abs = path.isAbsolute(policyPath) ? policyPath : path.join(process.cwd(), policyPath);
+export function loadPolicy(policyPath?: string): Policy {
+  const pathToUse = policyPath ?? process.env.ROUTER_GOVERNOR_POLICY_PATH ?? "config/policy.json";
+  const abs = path.isAbsolute(pathToUse) ? pathToUse : path.join(process.cwd(), pathToUse);
   const raw = fs.readFileSync(abs, "utf8");
   const obj = JSON.parse(raw) as Partial<Policy>;
   validatePolicy(obj);
