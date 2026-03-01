@@ -41,7 +41,7 @@ const policy = loadPolicy();
 // Build set of patterns that identify the router model
 const ROUTER_MODEL_PATTERNS: string[] = [];
 try {
-  const modelsPath = new URL("../config/models.json", import.meta.url).pathname;
+  const modelsPath = new URL("../../config/models.json", import.meta.url).pathname;
   const models: Record<string, string> = JSON.parse(
     (await import("node:fs")).readFileSync(modelsPath, "utf8")
   );
