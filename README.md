@@ -170,8 +170,8 @@ Client / Caddy  →  :gateway.port  (proxy — router-governor)
                     ├─────────┤
                     │   WS    │  JSON-RPC: tracks sessions.patch (model changes)
                     │         │  On chat.send when session model=router:
-                    │         │  → handle() → if handoff: sessions.patch to switch
-                    │         │    model, then forward chat.send to worker
+                    │         │  → handle() → if handoff: admin conn (cli mode)
+                    │         │    calls sessions.patch, then forward chat.send
                     └────┬────┘
                          │  non-router / forwarded
                          ▼
@@ -184,7 +184,12 @@ Client / Caddy  →  :gateway.port  (proxy — router-governor)
 - Caddy always points to `gateway.port` — the proxy.  
 - To change the port, update `gateway.port` in `openclaw.json` and run `npm run activate`.
 
-**WebSocket interception:** The proxy intercepts OpenClaw's JSON-RPC protocol at the message level (not raw TCP tunneling). It tracks the active model per session from `sessions.patch` requests/responses and `sessions.list` results. When `chat.send` arrives for a session using the router model, it runs the governor's `handle()`. On handoff, it injects a `sessions.patch` to switch the session's model to the chosen worker alias before forwarding the chat message. The backend then processes the message with the worker model. No `agents.defaults.skills` config key is needed — the governor enforces routing at the proxy layer for both HTTP and WebSocket traffic.
+**WebSocket interception:** The proxy intercepts OpenClaw's JSON-RPC protocol at the message level (not raw TCP tunneling). It maintains two classes of connections to the backend:
+
+- **Client tunnels** — one per browser/TUI client. Forwards all frames transparently. Reads model-per-session from `sessions.patch` and `sessions.list` responses. Cannot call `sessions.patch` itself because the OpenClaw gateway forbids webchat clients from mutating sessions.
+- **Admin connection** — a single persistent connection owned by the proxy itself, connecting to the gateway as `mode="cli"` with the gateway auth token. CLI-mode connections are not webchat clients and *are* allowed to call `sessions.patch`.
+
+When `chat.send` arrives for a router-model session, the proxy runs `handle()`. On handoff, the **admin connection** calls `sessions.patch` to switch the session's model to the chosen worker alias. The original `chat.send` is then forwarded through the client tunnel, which the backend processes with the newly switched model. No `agents.defaults.skills` config key is needed — the governor enforces routing at the proxy layer for both HTTP and WebSocket traffic.
 
 #### Clone and activate
 
@@ -270,7 +275,7 @@ If no log file appears, ensure `policy.logging.enabled` is `true`, the process h
 
 **How the governor enforces routing (both paths):**
 - **HTTP** (`POST /v1/chat/completions` with `model=router`): Proxy calls `handle()` and returns the response or handoff directly.
-- **WebSocket** (web UI): Proxy parses the JSON-RPC frames, tracks `sessions.patch` model changes, and on `chat.send` for a router session, calls `handle()`. On handoff, it injects `sessions.patch` to switch the model to the chosen alias before forwarding the chat message. The backend then processes the message with the worker model. The proxy log (`journalctl --user -u openclaw-gateway-proxy`) shows `WS handoff: session=... → default (intent=coding)` for each handoff.
+- **WebSocket** (web UI): Proxy parses JSON-RPC frames, tracks model-per-session, and on `chat.send` for a router session calls `handle()`. On handoff, the proxy's own **admin connection** (mode=`cli`, token auth) calls `sessions.patch` to switch the session model — the client tunnel cannot do this directly because webchat clients are forbidden from patching sessions by the gateway. The chat message is then forwarded and processed with the new model. The proxy log (`journalctl --user -u openclaw-gateway-proxy`) shows `WS handoff via admin conn: session=... → default (intent=coding)` for each handoff.
 
 **Run the validator:**
 ```bash
