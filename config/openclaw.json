@@ -25,10 +25,7 @@
           }
         },
         "openrouter/openai/gpt-5.3-codex": {
-          "alias": [
-            "codex",
-            "codex53"
-          ],
+          "alias": "codex53",
           "params": {
             "maxTokens": 16384
           }
