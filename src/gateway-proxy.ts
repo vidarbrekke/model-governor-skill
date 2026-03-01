@@ -122,7 +122,7 @@ class AdminGatewayConnection {
           minProtocol: 3,
           maxProtocol: 3,
           client: {
-            id: "router-governor-proxy",
+            id: "cli",            // must be a GATEWAY_CLIENT_IDS constant; "cli" = GATEWAY_CLIENT_IDS.CLI
             displayName: "Router Governor Proxy",
             version: "0.1.0",
             platform: process.platform,
