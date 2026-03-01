@@ -13,10 +13,10 @@ if [ -n "$OPENCLAW_WORKSPACE" ]; then
   if [ -d "$OPENCLAW_WORKSPACE" ]; then
     OPENCLAW_WORKSPACE="$(cd "$OPENCLAW_WORKSPACE" && pwd)"
   fi
-elif [[ "$REPO_ROOT" == */repositories/router-governor ]]; then
+elif [[ "$REPO_ROOT" == */repositories/router-governor ]] || [[ "$REPO_ROOT" == */repositories/model-governor-skill ]]; then
   OPENCLAW_WORKSPACE="$(cd "$REPO_ROOT/../.." && pwd)"
 else
-  echo "ERROR: OPENCLAW_WORKSPACE not set and repo is not at .../workspace/repositories/router-governor"
+  echo "ERROR: OPENCLAW_WORKSPACE not set and repo is not at .../workspace/repositories/router-governor (or model-governor-skill)"
   echo "Set it to your OpenClaw workspace root, e.g.:"
   echo "  export OPENCLAW_WORKSPACE=/path/to/.openclaw/workspace"
   exit 1
