@@ -1,7 +1,6 @@
 [Unit]
 Description=OpenClaw Gateway Proxy (router-governor)
 After=openclaw-gateway.service
-Requires=openclaw-gateway.service
 
 [Service]
 Environment=OPENCLAW_GATEWAY_PROXY_PORT=18789
