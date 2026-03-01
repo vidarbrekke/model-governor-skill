@@ -87,6 +87,20 @@ if systemctl --user status openclaw-gateway.service >/dev/null 2>&1; then
   if ! grep -q 'OPENCLAW_GATEWAY_PORT=18790' "$OVERRIDE_FILE"; then
     printf "Environment=OPENCLAW_GATEWAY_PORT=18790\n" >> "$OVERRIDE_FILE"
   fi
+  # Override ExecStart so gateway actually listens on 18790 (CLI may prefer --port over env)
+  EXEC_START=$(systemctl --user show openclaw-gateway.service -p ExecStart --value 2>/dev/null || true)
+  if [ -n "$EXEC_START" ]; then
+    NEW_EXEC="${EXEC_START//--port 18789/--port 18790}"
+    if [ "$NEW_EXEC" != "$EXEC_START" ]; then
+      if grep -q '^ExecStart=.*--port 18790' "$OVERRIDE_FILE"; then
+        : # already set
+      else
+        awk '!/^\s*ExecStart=/' "$OVERRIDE_FILE" > "${OVERRIDE_FILE}.tmp"
+        mv "${OVERRIDE_FILE}.tmp" "$OVERRIDE_FILE"
+        printf "ExecStart=%s\n" "$NEW_EXEC" >> "$OVERRIDE_FILE"
+      fi
+    fi
+  fi
   systemctl --user daemon-reload
   systemctl --user restart openclaw-gateway.service
   echo "--- Wired $SYSTEMD_ENV_FILE into openclaw-gateway.service, gateway port 18790, restarted"
