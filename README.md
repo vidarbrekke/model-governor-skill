@@ -73,7 +73,17 @@ Log lines include `shadow_chosen_alias` when shadow mode is active.
 
 When the **code runtime** is used and `config/policy.json` has `logging.enabled: true`, the governor **writes every routing decision** to a **dedicated JSONL log file**. That file records the **model chosen** and the **reason for the change** (and related context) on each request.
 
-- **Log path:** `policy.logging.path` or default `.openclaw/logs/model-governor.jsonl` (relative to process cwd).
+**How to enable or disable:** Logging is controlled only by the **policy file** (no env var). In the `logging` section of `config/policy.json`:
+
+- **Default (this repo’s sample policy):** `"enabled": true` — logging is **on** when you use the bundled policy as-is and the code runtime is wired.
+- **Disable:** Set `"enabled": false`. No log file is written.
+- **Enable (if you turned it off):** Set `"enabled": true`.
+- **Log path (optional):** Set `"path": "/your/path/model-governor.jsonl"` to choose where the file is written. If omitted, the default is `.openclaw/logs/model-governor.jsonl` (relative to the process working directory). The process must have write access to that path.
+
+If the **code runtime** is not integrated (e.g. OpenClaw only runs the skill text and never calls `handle()`), no log file is produced regardless of `enabled`.
+
+**Recommended use:** Treat the log as **diagnostics and policy review only**, not as a long-term audit trail. **Purge or rotate it regularly** (e.g. keep the last 7–14 days or a few MB) so disk use and retained data stay bounded. Use cron, logrotate, or a similar mechanism; exact retention is up to your environment.
+
 - **Per-line fields (typical):**
   - `timestamp` — ISO time of the decision
   - `request_id`, `session_id` — when provided by the runtime
