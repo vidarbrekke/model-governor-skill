@@ -26,6 +26,7 @@ OPENCLAW_HOME="$(cd "$OPENCLAW_WORKSPACE/.." && pwd)"
 SKILLS_DIR="$OPENCLAW_WORKSPACE/skills"
 SKILL_DEST="$SKILLS_DIR/router-governor"
 ENV_FILE="$OPENCLAW_WORKSPACE/.env.router-governor"
+SYSTEMD_ENV_FILE="$OPENCLAW_WORKSPACE/.env.router-governor.systemd"
 
 # Create workspace dirs if we're deploying into a new workspace
 mkdir -p "$SKILLS_DIR"
@@ -60,8 +61,36 @@ export ROUTER_GOVERNOR_POLICY_PATH="$REPO_ROOT/config/policy.json"
 EOF
 echo "--- Wrote $ENV_FILE"
 
+# Systemd-compatible env file (EnvironmentFile=... expects KEY=VALUE, not 'export KEY=VALUE')
+cat > "$SYSTEMD_ENV_FILE" << EOF
+OPENCLAW_HOME=$OPENCLAW_HOME
+ROUTER_GOVERNOR_POLICY_PATH=$REPO_ROOT/config/policy.json
+# ROUTER_GOVERNOR_LOG_PATH=/path/to/model-governor.jsonl
+EOF
+echo "--- Wrote $SYSTEMD_ENV_FILE"
+
+# If the gateway runs as a user-level systemd service, wire env and restart automatically.
+if systemctl --user status openclaw-gateway.service >/dev/null 2>&1; then
+  OVERRIDE_DIR="$HOME/.config/systemd/user/openclaw-gateway.service.d"
+  OVERRIDE_FILE="$OVERRIDE_DIR/override.conf"
+  mkdir -p "$OVERRIDE_DIR"
+
+  if [ -f "$OVERRIDE_FILE" ]; then
+    awk '!/^\s*EnvironmentFile=-\/root\/openclaw-stock-home\/\.openclaw\/workspace\/\.env\.router-governor\.systemd\s*$/' "$OVERRIDE_FILE" > "${OVERRIDE_FILE}.tmp"
+    mv "${OVERRIDE_FILE}.tmp" "$OVERRIDE_FILE"
+  else
+    printf "[Service]\n" > "$OVERRIDE_FILE"
+  fi
+
+  printf "EnvironmentFile=-%s\n" "$SYSTEMD_ENV_FILE" >> "$OVERRIDE_FILE"
+  systemctl --user daemon-reload
+  systemctl --user restart openclaw-gateway.service
+  echo "--- Wired $SYSTEMD_ENV_FILE into openclaw-gateway.service and restarted it"
+fi
+
 echo ""
 echo "Activation done. To make the governor active at runtime:"
 echo "  1. Ensure the process that starts OpenClaw sources: source $ENV_FILE"
-echo "  2. OpenClaw must call the governor handle() (or bridge CLI) when the router model is selected; until that hook exists, use the bridge CLI for verification."
-echo "  3. Run log report: source $ENV_FILE && npm run log:report (from this repo)."
+echo "  2. For systemd user service, use EnvironmentFile=$SYSTEMD_ENV_FILE (this script auto-wires openclaw-gateway when present)."
+echo "  3. OpenClaw must call the governor handle() (or bridge CLI) when the router model is selected; until that hook exists, use the bridge CLI for verification."
+echo "  4. Run log report: source $ENV_FILE && npm run log:report (from this repo)."

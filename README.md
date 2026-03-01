@@ -170,7 +170,7 @@ On the server, keep this repo under the OpenClaw workspace so one script can bui
   npm run activate
   ```
 
-  This runs `scripts/post-pull-activate.sh`, which: (1) `npm install` and `npm run build` and `npm test`, (2) copies **skills/router-governor/** into **workspace/skills/router-governor/** so OpenClaw loads it, (3) writes **workspace/.env.router-governor** with `OPENCLAW_HOME` and `ROUTER_GOVERNOR_POLICY_PATH`. To make the governor code active at runtime, the process that starts OpenClaw should **source** that env file; OpenClaw must still call the governor `handle()` (or bridge) when the router model is selected (see [Verifying logging and handoff](#verifying-logging-and-handoff-without-openclaw-patch)).
+  This runs `scripts/post-pull-activate.sh`, which: (1) `npm install` and `npm run build` and `npm test`, (2) copies **skills/router-governor/** into **workspace/skills/router-governor/** so OpenClaw loads it, (3) writes **workspace/.env.router-governor** (shell format) and **workspace/.env.router-governor.systemd** (systemd `EnvironmentFile` format) with `OPENCLAW_HOME` and `ROUTER_GOVERNOR_POLICY_PATH`, and (4) if `openclaw-gateway.service` exists as a user service, auto-wires the systemd env file and restarts the service. OpenClaw must still call the governor `handle()` (or bridge) when the router model is selected (see [Verifying logging and handoff](#verifying-logging-and-handoff-without-openclaw-patch)).
 
 - If the repo is **not** under `.../workspace/repositories/router-governor`, set `OPENCLAW_WORKSPACE` before running activate:
 
