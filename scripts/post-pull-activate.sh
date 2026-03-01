@@ -83,22 +83,19 @@ if systemctl --user status openclaw-gateway.service >/dev/null 2>&1; then
   fi
 
   printf "EnvironmentFile=-%s\n" "$SYSTEMD_ENV_FILE" >> "$OVERRIDE_FILE"
-  # Run gateway on backend port so proxy can listen on public port
-  if ! grep -q 'OPENCLAW_GATEWAY_PORT=18790' "$OVERRIDE_FILE"; then
-    printf "Environment=OPENCLAW_GATEWAY_PORT=18790\n" >> "$OVERRIDE_FILE"
-  fi
-  # Override ExecStart so gateway actually listens on 18790 (CLI may prefer --port over env)
-  EXEC_START=$(systemctl --user show openclaw-gateway.service -p ExecStart --value 2>/dev/null || true)
-  if [ -n "$EXEC_START" ]; then
-    NEW_EXEC="${EXEC_START//--port 18789/--port 18790}"
-    if [ "$NEW_EXEC" != "$EXEC_START" ]; then
-      if grep -q '^ExecStart=.*--port 18790' "$OVERRIDE_FILE"; then
-        : # already set
-      else
-        awk '!/^\s*ExecStart=/' "$OVERRIDE_FILE" > "${OVERRIDE_FILE}.tmp"
-        mv "${OVERRIDE_FILE}.tmp" "$OVERRIDE_FILE"
-        printf "ExecStart=%s\n" "$NEW_EXEC" >> "$OVERRIDE_FILE"
-      fi
+  # Run gateway on backend port 18790 via a wrapper (gateway CLI ignores env and uses argv)
+  BASE_UNIT="$HOME/.config/systemd/user/openclaw-gateway.service"
+  WRAPPER="$OPENCLAW_WORKSPACE/scripts/run-gateway-18790.sh"
+  if [ -f "$BASE_UNIT" ]; then
+    EXEC_CMD=$(grep '^ExecStart=' "$BASE_UNIT" | head -1 | sed 's/^ExecStart=//')
+    NEW_CMD="${EXEC_CMD//--port 18789/--port 18790}"
+    if [ "$NEW_CMD" != "$EXEC_CMD" ]; then
+      mkdir -p "$OPENCLAW_WORKSPACE/scripts"
+      printf '#!/bin/sh\nexec %s\n' "$NEW_CMD" > "$WRAPPER"
+      chmod +x "$WRAPPER"
+      awk '!/^\s*ExecStart=/' "$OVERRIDE_FILE" > "${OVERRIDE_FILE}.tmp"
+      mv "${OVERRIDE_FILE}.tmp" "$OVERRIDE_FILE"
+      printf "ExecStart=%s\n" "$WRAPPER" >> "$OVERRIDE_FILE"
     fi
   fi
   systemctl --user daemon-reload
