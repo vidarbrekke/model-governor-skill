@@ -207,8 +207,8 @@ Keep this repo under the OpenClaw workspace:
   | Skill | Copies `skills/router-governor/` → `workspace/skills/router-governor/` |
   | Env files | Writes `workspace/.env.router-governor` (shell) and `.env.router-governor.systemd` (Linux systemd) |
   | Gateway script | Generates `workspace/scripts/run-gateway.sh` — finds openclaw via PATH, `require.resolve`, or common paths (Ubuntu/macOS Homebrew) |
-  | **Linux** | Patches `openclaw-gateway.service` override; restarts gateway and `openclaw-gateway-proxy.service`; updates Caddy if present |
-  | **macOS** | Writes LaunchAgent plists to `~/Library/LaunchAgents/` for gateway and proxy; start with `launchctl load ~/Library/LaunchAgents/com.openclaw.router-governor.gateway.plist` and same for `.proxy.plist` |
+  | **Linux (Ubuntu)** | Patches `openclaw-gateway.service` override; restarts gateway and `openclaw-gateway-proxy.service` via systemd; updates Caddy if present. **Do not use `launchctl`** — that is macOS only. |
+  | **macOS only** | Writes LaunchAgent plists to `~/Library/LaunchAgents/`. Start with: `launchctl load ~/Library/LaunchAgents/com.openclaw.router-governor.gateway.plist` then the same for `.proxy.plist`. On Linux, systemd is used instead. |
   | Validate | Generates `workspace/scripts/validate-gateway-proxy.sh` (uses `ss` on Linux, `lsof` on macOS) |
 
 - If the repo is **not** under `.../workspace/repositories/`, set `OPENCLAW_WORKSPACE` first:
