@@ -159,26 +159,69 @@ If you want OpenClaw to answer questions like "when and why did models change?",
 
 ### Server layout (e.g. Linode)
 
-On the server, keep this repo under the OpenClaw workspace so one script can build, test, deploy the skill, and write env for the governor:
+#### Port architecture
 
-- **Canonical path:** `<workspace>/.openclaw/workspace/repositories/router-governor`  
-  Example: `/root/openclaw-stock-home/.openclaw/workspace/repositories/router-governor`  
+```
+Client / Caddy  →  :gateway.port  (proxy — router-governor)
+                         │
+              model=router? ──yes──▶  governor handle()  ─▶  respond OR
+                         │                                     set model=<worker>
+                         │                                          │
+                         └──no / handoff──────────────────────────▶│
+                                                                    ▼
+                                             :gateway.port+1  (openclaw gateway)
+```
+
+**Single source of truth:** `openclaw.json` → `gateway.port`.  
+- **Proxy** listens on `gateway.port` (what Caddy and clients use).  
+- **Gateway** listens on `gateway.port + 1` (internal only).  
+- Caddy always points to `gateway.port` — the proxy.  
+- To change the port, update `gateway.port` in `openclaw.json` and run `npm run activate`.
+
+#### Clone and activate
+
+Keep this repo under the OpenClaw workspace:
+
+- **Canonical path:** `<workspace>/repositories/router-governor`  
   (The repo may be cloned as **model-governor-skill**; the activate script accepts both directory names.)
-- After **clone or pull**, run activation so the skill is deployed and paths are set:
+- After **clone or pull**, run:
 
   ```bash
   cd <workspace>/repositories/router-governor
   npm run activate
   ```
 
-  This runs `scripts/post-pull-activate.sh`, which: (1) `npm install` and `npm run build` and `npm test`, (2) copies **skills/router-governor/** into **workspace/skills/router-governor/** so OpenClaw loads it, (3) writes **workspace/.env.router-governor** (shell format) and **workspace/.env.router-governor.systemd** (systemd `EnvironmentFile` format) with `OPENCLAW_HOME` and `ROUTER_GOVERNOR_POLICY_PATH`, (4) if `openclaw-gateway.service` exists as a user service, sets the gateway to listen on port **18790** and wires the env file, and (5) installs **openclaw-gateway-proxy.service**, which listens on **18789** and runs the governor for every request with `model=router` (respond or hand off to the chosen worker). Clients keep using port 18789; the proxy forwards non-router and handoff traffic to the gateway on 18790.
+  `scripts/post-pull-activate.sh` does everything automatically:
 
-- If the repo is **not** under `.../workspace/repositories/router-governor`, set `OPENCLAW_WORKSPACE` before running activate:
+  | Step | What it does |
+  |------|-------------|
+  | Build | `npm install`, `npm run build`, `npm test` |
+  | Skill | Copies `skills/router-governor/` → `workspace/skills/router-governor/` |
+  | Env files | Writes `workspace/.env.router-governor` (shell) and `.env.router-governor.systemd` (systemd) |
+  | Gateway | Generates `workspace/scripts/run-gateway.sh` (reads `openclaw.json` at start; runs on `gateway.port+1`); patches `openclaw-gateway.service` override with blank+new `ExecStart=`; restarts gateway |
+  | Proxy | Writes and restarts `openclaw-gateway-proxy.service` on `gateway.port` |
+  | Caddy | If Caddyfile found pointing to `gateway.port+1`, rewrites it to `gateway.port` and reloads Caddy |
+  | Validate | Generates `workspace/scripts/validate-gateway-proxy.sh` |
+
+- If the repo is **not** under `.../workspace/repositories/`, set `OPENCLAW_WORKSPACE` first:
 
   ```bash
   export OPENCLAW_WORKSPACE=/path/to/.openclaw/workspace
   npm run activate
   ```
+
+#### After activation — validate the chain
+
+```bash
+/root/openclaw-stock-home/.openclaw/workspace/scripts/validate-gateway-proxy.sh
+```
+
+Output checks that proxy, gateway, and Caddy all reference the correct ports and that `/health` returns `200`.
+
+#### Changing the port
+
+1. Edit `gateway.port` in `openclaw.json`.
+2. Run `npm run activate` — everything else is updated and restarted automatically.
 
 ### Manual installation steps
 
@@ -213,7 +256,11 @@ When the governor runs (via bridge CLI or a future OpenClaw hook), the JSONL log
 
 If no log file appears, ensure `policy.logging.enabled` is `true`, the process has write access to the log directory, and (when not using the CLI) the runtime actually invokes `handle()` or the bridge when the router model is selected.
 
-**Verified on cloud server:** After pulling the repo and running `npm run build`, the bridge CLI was run with `ROUTER_GOVERNOR_LOG_PATH` set to the OpenClaw logs directory. The log file was created and contained the expected `chosen_alias`, `intent`, `reason_codes`, and `signals` for both a debugging prompt (handoff to `default`) and a web-research prompt (handoff to `gemini`).
+**Verified on Linode (2026-03-01):**
+- Gateway on `:18790`, proxy on `:18789`, Caddy → `:18789`.
+- `POST /v1/chat/completions` with `model=router` returns the governor decision and writes a JSONL log entry.
+- `GET /health` on `:18789` returns `{"status":"ok"}`.
+- Run `workspace/scripts/validate-gateway-proxy.sh` for a live chain check.
 
 ## License
 

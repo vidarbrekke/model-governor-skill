@@ -100,6 +100,20 @@ const server = http.createServer(async (req, res) => {
   const path = req.url ?? "/";
   const method = req.method ?? "GET";
 
+  // Health check — no forwarding, no body read
+  if (path === "/health") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(
+      JSON.stringify({
+        status: "ok",
+        service: "router-governor-proxy",
+        backend: GATEWAY_URL,
+        proxy_port: PORT
+      })
+    );
+    return;
+  }
+
   const chunks: Buffer[] = [];
   for await (const c of req) chunks.push(c as Buffer);
   const bodyBuf = Buffer.concat(chunks);
