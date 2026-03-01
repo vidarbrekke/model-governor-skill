@@ -164,6 +164,8 @@ When the governor runs (via bridge CLI or a future OpenClaw hook), the JSONL log
 
 If no log file appears, ensure `policy.logging.enabled` is `true`, the process has write access to the log directory, and (when not using the CLI) the runtime actually invokes `handle()` or the bridge when the router model is selected.
 
+**Verified on cloud server:** After pulling the repo and running `npm run build`, the bridge CLI was run with `ROUTER_GOVERNOR_LOG_PATH` set to the OpenClaw logs directory. The log file was created and contained the expected `chosen_alias`, `intent`, `reason_codes`, and `signals` for both a debugging prompt (handoff to `default`) and a web-research prompt (handoff to `gemini`).
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
