@@ -69,6 +69,12 @@ function validatePolicy(obj: Partial<Policy>): asserts obj is Policy {
     throw new Error("Invalid policy.json: logging.format must be jsonl");
   }
   assertStringArray(obj.logging.fields, "logging.fields");
+  if (obj.logging.retention_days !== undefined && !isPositiveInteger(obj.logging.retention_days)) {
+    throw new Error("Invalid policy.json: logging.retention_days must be a positive integer");
+  }
+  if (obj.logging.max_file_bytes !== undefined && !isPositiveInteger(obj.logging.max_file_bytes)) {
+    throw new Error("Invalid policy.json: logging.max_file_bytes must be a positive integer");
+  }
 }
 
 export function loadPolicy(policyPath?: string): Policy {
@@ -80,6 +86,12 @@ export function loadPolicy(policyPath?: string): Policy {
 
   if (!obj.logging.path) {
     obj.logging.path = ".openclaw/logs/model-governor.jsonl";
+  }
+  if (!obj.logging.retention_days) {
+    obj.logging.retention_days = 14;
+  }
+  if (!obj.logging.max_file_bytes) {
+    obj.logging.max_file_bytes = 5 * 1024 * 1024;
   }
 
   return obj;

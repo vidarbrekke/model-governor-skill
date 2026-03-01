@@ -1,5 +1,5 @@
 import path from "node:path";
-import { appendJsonl } from "./logger.js";
+import { appendJsonl, enforceLogRetention } from "./logger.js";
 import { loadPolicy } from "./policy.js";
 import { makeHandoffAnnouncement, route } from "./router.js";
 import { SkillContext, SkillInput, SkillOutput } from "./types.js";
@@ -50,7 +50,12 @@ export async function handle(input: SkillInput, ctx: SkillContext): Promise<Skil
     };
     if (isShadowMode()) logEntry.shadow_chosen_alias = decision.chosenAlias;
     try {
-      appendJsonl(resolveLogPath(), logEntry);
+      const logPath = resolveLogPath();
+      appendJsonl(logPath, logEntry);
+      enforceLogRetention(logPath, {
+        retentionDays: policy.logging.retention_days ?? 14,
+        maxFileBytes: policy.logging.max_file_bytes ?? 5 * 1024 * 1024
+      });
     } catch (err) {
       console.error("[router-governor] Failed to write JSONL log:", err);
     }

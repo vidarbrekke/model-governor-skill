@@ -83,16 +83,18 @@ Log lines include `shadow_chosen_alias` when shadow mode is active.
 
 When the **code runtime** is used and `config/policy.json` has `logging.enabled: true`, the governor **writes every routing decision** to a **dedicated JSONL log file**. That file records the **model chosen** and the **reason for the change** (and related context) on each request.
 
-**How to enable or disable:** Logging is controlled only by the **policy file** (no env var). In the `logging` section of `config/policy.json`:
+**How it is configured:** Logging is controlled by the `logging` section in `config/policy.json` and is **on by default** in this project.
 
-- **Default (this repo’s sample policy):** `"enabled": true` — logging is **on** when you use the bundled policy as-is and the code runtime is wired.
-- **Disable:** Set `"enabled": false`. No log file is written.
-- **Enable (if you turned it off):** Set `"enabled": true`.
+- **Default:** `"enabled": true` (keep this on for diagnostics/review).
 - **Log path (optional):** Set `"path": "/your/path/model-governor.jsonl"` to choose where the file is written. If omitted, the default is `.openclaw/logs/model-governor.jsonl` (relative to the process working directory). The process must have write access to that path.
+- **Automatic retention cleanup:**  
+  - `"retention_days": 14` keeps only recent events (based on each line's `timestamp`).  
+  - `"max_file_bytes": 5242880` keeps file size bounded (keeps newest lines).
+  - Cleanup runs automatically after each appended log event.
 
 If the **code runtime** is not integrated (e.g. OpenClaw only runs the skill text and never calls `handle()`), no log file is produced regardless of `enabled`.
 
-**Recommended use:** Treat the log as **diagnostics and policy review only**, not as a long-term audit trail. **Purge or rotate it regularly** (e.g. keep the last 7–14 days or a few MB) so disk use and retained data stay bounded. Use cron, logrotate, or a similar mechanism; exact retention is up to your environment.
+**Recommended use:** Treat the log as **diagnostics and policy review only**, not as a long-term audit trail. Built-in retention keeps it bounded by age and size; you can still add cron/logrotate for defense in depth.
 
 - **Per-line fields (typical):**
   - `timestamp` — ISO time of the decision
@@ -112,6 +114,7 @@ So **yes, the solution logs model changes and the reason for the change** in tha
 - **`npm test`** — Runs Vitest against `tests/cases.jsonl` (alias + intent per case). Block merges on failures.
 - **`npm run cases`** — Same cases via CLI; exits 1 on first failure and prints expected vs got.
 - **`npm run build`** — Compiles TypeScript to `dist/`.
+- **`npm run log:report`** — Reads the log and prints a structured summary of when/why model changes happened.
 
 Add new cases to `tests/cases.jsonl` (one JSON object per line with `id`, `prompt`, `expected_alias`, `expected_intent`) and expand to 30–50 real prompts to tune misroutes.
 
@@ -127,6 +130,16 @@ OpenClaw’s npm runtime does not yet invoke the governor when the active model 
    ```
 
 2. Check stdout for a `handoff` result and that the log file contains a line with `chosen_alias`, `intent`, `reason_codes`, and `signals`.
+
+3. Ask for a human-readable summary (for diagnostics/review):
+
+   ```bash
+   npm run log:report
+   # or
+   node dist/src/log-report.js --hours 168
+   ```
+
+If you want OpenClaw to answer questions like "when and why did models change?", have it read the report output (or the raw JSONL) and summarize by `chosen_alias`, `intent`, and `reason_codes`.
 
 To **wire the governor into OpenClaw** so it runs automatically when the user selects `/model router`, the OpenClaw runtime would need to call `handle()` (or this CLI) when the active model alias is `router`, then map `SkillOutput` to a response or model switch. Until that hook exists in OpenClaw, use the bridge CLI for verification and for any custom integration (e.g. a wrapper or script that invokes it when you detect router model).
 

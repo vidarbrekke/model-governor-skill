@@ -47,6 +47,8 @@ export interface Policy {
     format: "jsonl";
     path?: string;
     fields: string[];
+    retention_days?: number;
+    max_file_bytes?: number;
   };
   /** When true, log routing decision but always hand off to default_worker_alias. Overridable by ROUTER_GOVERNOR_SHADOW_MODE env. */
   shadow_mode?: boolean;

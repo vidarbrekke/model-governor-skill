@@ -71,3 +71,14 @@ Optionally, the worker model can start its first reply after a handoff with a on
 - Do not retry identical `web_search` more than once.
 - Do not retry identical missing `read path` more than once.
 - On second failure: escalate and include failure summary.
+
+## Diagnostics: model-change reporting
+
+If the user asks for model-change history or "why models were changed":
+
+1. Read the governor log/report output (preferred: run `npm run log:report` in the governor repo; fallback: read `model-governor.jsonl`).
+2. Summarize:
+   - when changes happened (time window and latest events),
+   - which aliases were selected (`chosen_alias` counts),
+   - why changes happened (`reason_codes` and `signals`).
+3. Keep the answer concise and evidence-based (quote representative entries, do not fabricate).
