@@ -1,0 +1,17 @@
+{
+  "name": "router-governor",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "cases": "node --loader ts-node/esm tests/run-cases.ts"
+  },
+  "devDependencies": {
+    "ts-node": "latest",
+    "typescript": "latest",
+    "vitest": "latest"
+  }
+}

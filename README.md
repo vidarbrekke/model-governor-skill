@@ -11,7 +11,8 @@ One repo for **model governance** on OpenClaw: canonical model aliases (OpenRout
 | **config/policy.json** | Machine-checkable routing policy (budgets, signals, intent routing, reason codes). Logging section is a schema for runtime; implement in OpenClaw when hooks exist. |
 | **skills/router-governor/SKILL.md** | Router-governor skill definition (routing policy, escalation rules). Install to `~/.openclaw/skills/router-governor/` or `workspace/skills/router-governor/`. |
 | **skills/router-governor/examples.md** | Example prompts and escalation cases. |
-| **tests/cases.jsonl** | Routing test cases (expected alias/intent per prompt); for future test harness. |
+| **src/** | Code-enforced routing runtime: types, policy loader, signal detection, router, logger, and OpenClaw skill entrypoint. See [Code runtime (src/)](#code-runtime-src) below. |
+| **tests/cases.jsonl** | Routing test cases (expected alias/intent per prompt). Run via `npm test` or `npm run cases`. |
 
 These are the files that **make up the model-governor / router-governor feature**. Other paths on a live server (e.g. `openclaw.json` root, `workspace/docs/CLOUD_AGENT_CONTEXT.md`, `workspace/memory/`, `workspace/scripts/`) are **workspace or machine-specific** and are **not** part of this repo. Install by copying/merging from this repo into the live environment.
 
@@ -20,12 +21,40 @@ These are the files that **make up the model-governor / router-governor feature*
 - **Router:** `router` alias (lightweight triage).
 - **Worker / default:** `default` or `qwen` for coding.
 - **Fallbacks:** `gemini`, `sonnet`.
-- **Advanced coding:** `codex` or **`codex53`** (gpt-5.3-codex). Use **`/model codex53`** to avoid the built-in catalog resolving to openai-codex/gpt-5.2-codex.
-- **If `/model codex` sets openai-codex/gpt-5.2-codex:** OpenClaw’s built-in catalog can resolve the alias `codex` to the wrong provider. Use **`/model codex53`** or the full ref **`/model openrouter/openai/gpt-5.3-codex`**.
+- **Advanced coding:** Use **`/model openrouter/openai/gpt-5.3-codex`** (full ref). Alias **`codex53`** is configured but on some OpenClaw versions a bare token like `codex53` is resolved as **anthropic/codex53** (default provider), so it fails "not allowed." The full ref avoids that. See [docs/5-WHYS-MODEL-CODEX.md](docs/5-WHYS-MODEL-CODEX.md) for root-cause analysis.
+- **If the reply says "Model set to … gpt-5.1-codex":** The app’s built-in catalog can overwrite the stored/displayed model id with 5.1; see the 5-whys doc. Prefer the full ref above; if the reply still shows 5.1, it may be an OpenClaw bug to report.
 
 The snippet in **config/openclaw.json** only wires `router`, `default`, and `gemini`. Aliases `codex` and `sonnet` are defined in **config/models.json** and are available for manual override or future escalation tiers; add them to your live config if you use those tiers.
 
 Ensure OpenClaw has the OpenRouter provider and API key configured; then use these aliases in agent config or `/model <alias>`.
+
+## Code runtime (src/)
+
+The `src/` tree implements **deterministic, policy-driven routing** so behavior is not prompt-only. Integrate it with OpenClaw’s skill runtime by calling the exported `handle()` function.
+
+### Contracts
+
+- **Policy:** Single source of truth is `config/policy.json`. Loaded at startup via `loadPolicy(path)`; invalid or missing required fields throw.
+- **SkillInput:** `{ text: string; routerToolCalls?: number; turnIndex?: number; previousErrorSignatures?: string[]; latestErrorSignature?: string }`. The runtime should pass user prompt as `text` and, when available, router turn/tool counts and error signatures for budget and repeat-failure escalation.
+- **SkillContext:** `{ sessionId?: string; requestId?: string; tokensIn?: number; tokensOut?: number; estimatedCost?: number }`. Used for JSONL logging only.
+- **SkillOutput:** Either `{ mode: "respond"; text: string }` (router answers in-place, bounded by `policy.budgets.router.max_output_chars`) or `{ mode: "handoff"; chosenAlias: string; handoff: Record<string, unknown>; announcement?: string }`. The `handoff` object contains `intent`, `reason_codes`, `signals`, `constraints`, `handoff_summary`, and `original_user_text` for the worker. Map `chosenAlias` to your OpenClaw model alias (e.g. `default`, `codex`, `sonnet`, `gemini`).
+
+### Shadow mode
+
+When **shadow mode** is on, the governor logs the routing decision (including the alias it would have chosen) but **always returns a handoff to the default worker**. Use this to collect logs and tune policy without changing live behavior. Enable via:
+
+- **Env:** `ROUTER_GOVERNOR_SHADOW_MODE=1`
+- **Policy (optional):** `"shadow_mode": true` in `config/policy.json`
+
+Log lines include `shadow_chosen_alias` when shadow mode is active.
+
+### Tests and scripts
+
+- **`npm test`** — Runs Vitest against `tests/cases.jsonl` (alias + intent per case). Block merges on failures.
+- **`npm run cases`** — Same cases via CLI; exits 1 on first failure and prints expected vs got.
+- **`npm run build`** — Compiles TypeScript to `dist/`.
+
+Add new cases to `tests/cases.jsonl` (one JSON object per line with `id`, `prompt`, `expected_alias`, `expected_intent`) and expand to 30–50 real prompts to tune misroutes.
 
 ## Installation (into live OpenClaw)
 

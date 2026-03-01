@@ -3,3 +3,5 @@ linode.env
 *.env
 !*.env.example
 sync_to_github.sh
+node_modules
+dist
