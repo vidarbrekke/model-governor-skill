@@ -11,7 +11,7 @@
 - **Triages incoming requests** using simple, fast rules (no extra model calls): e.g. “contains code”, “stack trace”, “needs latest info”, “multi-step refactor”.
 - **Picks a target model** from your configured aliases (`router`, `default`, `codex`, `sonnet`, `gemini`) and either lets the router answer in-place (short, bounded) or hands off to that model with a small context envelope.
 - **Enforces budgets and safety**: limits how many tool calls and turns the router may use, escalates when the same error repeats, and keeps the router from doing heavy work itself.
-- **Logs every decision** (e.g. JSONL) so you can see why something was routed where and tune the policy from real usage.
+- **Logs every decision** (e.g. JSONL) so you can see why something was routed where and tune the policy from real usage. When the **code runtime** (`src/`) is wired and `policy.logging.enabled` is true, it writes a **dedicated log file** (see [Logging model changes and reasons](#logging-model-changes-and-reasons) below).
 
 ## Why it works
 
@@ -68,6 +68,24 @@ When **shadow mode** is on, the governor logs the routing decision (including th
 - **Policy (optional):** `"shadow_mode": true` in `config/policy.json`
 
 Log lines include `shadow_chosen_alias` when shadow mode is active.
+
+### Logging model changes and reasons
+
+When the **code runtime** is used and `config/policy.json` has `logging.enabled: true`, the governor **writes every routing decision** to a **dedicated JSONL log file**. That file records the **model chosen** and the **reason for the change** (and related context) on each request.
+
+- **Log path:** `policy.logging.path` or default `.openclaw/logs/model-governor.jsonl` (relative to process cwd).
+- **Per-line fields (typical):**
+  - `timestamp` — ISO time of the decision
+  - `request_id`, `session_id` — when provided by the runtime
+  - **`chosen_alias`** — model that will handle the request (`router`, `default`, `codex`, `sonnet`, `gemini`)
+  - **`intent`** — e.g. `simple_qa`, `coding`, `debugging`, `web_research`
+  - **`reason_codes`** — why this alias was chosen (e.g. `hard_escalate_signal`, `coding`, `budget_exceeded`, `repeat_error_signature`)
+  - **`signals`** — detected triggers (e.g. `contains_code_block`, `long_input`)
+  - `router_tool_calls` — count when available
+  - `tokens_in`, `tokens_out`, `estimated_cost` — placeholders when the runtime supplies them
+  - `shadow_chosen_alias` — (only when shadow mode is on) the alias that would have been chosen if not shadowing
+
+So **yes, the solution logs model changes and the reason for the change** in that file. The **in-chat handoff line** (e.g. `[→ **default** | intent: coding | reason: hard_escalate_signal]`) is the user-visible summary; the JSONL log is the machine-readable audit trail for debugging and tuning. If the runtime is not yet integrated or logging is disabled, only the handoff line (and session history) is available.
 
 ### Tests and scripts
 
