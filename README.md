@@ -164,12 +164,18 @@ If you want OpenClaw to answer questions like "when and why did models change?",
 ```
 Client / Caddy  →  :gateway.port  (proxy — router-governor)
                          │
-              model=router? ──yes──▶  governor handle()  ─▶  respond OR
-                         │                                     set model=<worker>
-                         │                                          │
-                         └──no / handoff──────────────────────────▶│
-                                                                    ▼
-                                             :gateway.port+1  (openclaw gateway)
+                    ┌────┴────┐
+                    │  HTTP   │  POST /v1/chat/completions, model=router
+                    │         │  → governor handle() → respond or handoff
+                    ├─────────┤
+                    │   WS    │  JSON-RPC: tracks sessions.patch (model changes)
+                    │         │  On chat.send when session model=router:
+                    │         │  → handle() → if handoff: sessions.patch to switch
+                    │         │    model, then forward chat.send to worker
+                    └────┬────┘
+                         │  non-router / forwarded
+                         ▼
+                  :gateway.port+1  (openclaw gateway)
 ```
 
 **Single source of truth:** `openclaw.json` → `gateway.port`.  
@@ -177,6 +183,8 @@ Client / Caddy  →  :gateway.port  (proxy — router-governor)
 - **Gateway** listens on `gateway.port + 1` (internal only).  
 - Caddy always points to `gateway.port` — the proxy.  
 - To change the port, update `gateway.port` in `openclaw.json` and run `npm run activate`.
+
+**WebSocket interception:** The proxy intercepts OpenClaw's JSON-RPC protocol at the message level (not raw TCP tunneling). It tracks the active model per session from `sessions.patch` requests/responses and `sessions.list` results. When `chat.send` arrives for a session using the router model, it runs the governor's `handle()`. On handoff, it injects a `sessions.patch` to switch the session's model to the chosen worker alias before forwarding the chat message. The backend then processes the message with the worker model. No `agents.defaults.skills` config key is needed — the governor enforces routing at the proxy layer for both HTTP and WebSocket traffic.
 
 #### Clone and activate
 
@@ -248,19 +256,24 @@ This single folder is the git repo. Push to GitHub for backup and collaboration.
 
 ## Troubleshooting / verified state
 
-When the governor runs (via bridge CLI or a future OpenClaw hook), the JSONL log line should look like:
+**Do not add `agents.defaults.skills` to openclaw.json.** Current OpenClaw (e.g. v2026.2.26) does not recognize this key. The gateway will exit with “Config invalid” and the web UI will show Bad Gateway. The validator script and `npm run activate` check for this and will fail with instructions. When OpenClaw adds supported config for binding skills to the default agent, we will document the correct key here.
+
+When the governor runs (via HTTP API, WebSocket interception, or bridge CLI), the JSONL log line should look like:
 
 ```json
-{"timestamp":"...","request_id":null,"session_id":null,"chosen_alias":"default","intent":"debugging","reason_codes":["debugging","hard_escalate_signal"],"signals":["contains_stack_trace_or_error_log"],"router_tool_calls":0,"tokens_in":null,"tokens_out":null,"estimated_cost":null}
+{"timestamp":"...","request_id":null,"session_id":"agent:main","chosen_alias":"default","intent":"debugging","reason_codes":["debugging","hard_escalate_signal"],"signals":["contains_stack_trace_or_error_log"],"router_tool_calls":0,"tokens_in":null,"tokens_out":null,"estimated_cost":null}
 ```
 
-If no log file appears, ensure `policy.logging.enabled` is `true`, the process has write access to the log directory, and (when not using the CLI) the runtime actually invokes `handle()` or the bridge when the router model is selected.
+If no log file appears, ensure `policy.logging.enabled` is `true`, the process has write access to the log directory, and the proxy is running (both HTTP and WS paths go through the proxy).
 
-**Verified on Linode (2026-03-01):**
-- Gateway on `:18790`, proxy on `:18789`, Caddy → `:18789`.
-- `POST /v1/chat/completions` with `model=router` returns the governor decision and writes a JSONL log entry.
-- `GET /health` on `:18789` returns `{"status":"ok"}`.
-- Run `workspace/scripts/validate-gateway-proxy.sh` for a live chain check.
+**How the governor enforces routing (both paths):**
+- **HTTP** (`POST /v1/chat/completions` with `model=router`): Proxy calls `handle()` and returns the response or handoff directly.
+- **WebSocket** (web UI): Proxy parses the JSON-RPC frames, tracks `sessions.patch` model changes, and on `chat.send` for a router session, calls `handle()`. On handoff, it injects `sessions.patch` to switch the model to the chosen alias before forwarding the chat message. The backend then processes the message with the worker model. The proxy log (`journalctl --user -u openclaw-gateway-proxy`) shows `WS handoff: session=... → default (intent=coding)` for each handoff.
+
+**Run the validator:**
+```bash
+<workspace>/scripts/validate-gateway-proxy.sh
+```
 
 ## License
 

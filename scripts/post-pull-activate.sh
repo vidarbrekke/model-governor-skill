@@ -122,6 +122,21 @@ echo "Config:  $CONFIG  (gateway.port = $PUBLIC)"
 echo "Chain:   Caddy → proxy :$PUBLIC → gateway :$BACKEND"
 echo ""
 
+# Unsupported key: agents.defaults.skills (OpenClaw rejects it; gateway won't start)
+if [ -n "$CONFIG" ] && [ -f "$CONFIG" ]; then
+  if CONFIG="$CONFIG" node -e '
+    try {
+      const j = require(process.env.CONFIG);
+      const s = j && j.agents && j.agents.defaults && j.agents.defaults.skills;
+      process.exit(typeof s !== "undefined" ? 0 : 1);
+    } catch (e) { process.exit(1); }
+  ' 2>/dev/null; then
+    echo "  [FAIL] openclaw.json contains agents.defaults.skills (unsupported; gateway will not start)"
+    echo "         Remove that key (e.g. openclaw doctor --fix or edit manually), then restart gateway."
+    FAIL=1
+  fi
+fi
+
 # Proxy
 if ss -tlnp 2>/dev/null | grep -q ":${PUBLIC}[^0-9]"; then
   echo "  [OK]   proxy listening on :$PUBLIC"
@@ -170,6 +185,21 @@ echo "--- Wrote $VALIDATE_SCRIPT"
 if ! systemctl --user status openclaw-gateway.service >/dev/null 2>&1; then
   echo "--- openclaw-gateway.service not found; skipping systemd wiring"
 else
+  # Refuse to activate if openclaw.json contains unsupported agents.defaults.skills (gateway won't start)
+  if [ -f "$OC_CONFIG" ]; then
+    if node -e "
+      try {
+        const j = require('$OC_CONFIG');
+        const s = j && j.agents && j.agents.defaults && j.agents.defaults.skills;
+        process.exit(typeof s !== 'undefined' ? 0 : 1);
+      } catch (e) { process.exit(1); }
+    " 2>/dev/null; then
+      echo "ERROR: $OC_CONFIG contains agents.defaults.skills. OpenClaw does not support this key; the gateway will not start."
+      echo "Remove it (e.g. openclaw doctor --fix or edit manually), then run npm run activate again."
+      exit 1
+    fi
+  fi
+
   OVERRIDE_DIR="$HOME/.config/systemd/user/openclaw-gateway.service.d"
   OVERRIDE_FILE="$OVERRIDE_DIR/override.conf"
   mkdir -p "$OVERRIDE_DIR"

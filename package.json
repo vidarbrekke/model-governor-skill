@@ -14,8 +14,12 @@
     "proxy": "node dist/src/gateway-proxy.js"
   },
   "devDependencies": {
+    "@types/ws": "^8.18.1",
     "ts-node": "latest",
     "typescript": "latest",
     "vitest": "latest"
+  },
+  "dependencies": {
+    "ws": "^8.19.0"
   }
 }
