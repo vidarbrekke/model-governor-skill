@@ -161,7 +161,8 @@ To **wire the governor into OpenClaw** so it runs automatically when the user se
 On the server, keep this repo under the OpenClaw workspace so one script can build, test, deploy the skill, and write env for the governor:
 
 - **Canonical path:** `<workspace>/.openclaw/workspace/repositories/router-governor`  
-  Example: `/root/openclaw-stock-home/.openclaw/workspace/repositories/router-governor`
+  Example: `/root/openclaw-stock-home/.openclaw/workspace/repositories/router-governor`  
+  (The repo may be cloned as **model-governor-skill**; the activate script accepts both directory names.)
 - After **clone or pull**, run activation so the skill is deployed and paths are set:
 
   ```bash
