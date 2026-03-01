@@ -87,7 +87,7 @@ EOF
 echo "--- Wrote env files"
 
 # ─── run-gateway.sh (single source of truth: reads openclaw.json at start time) ─
-# Runs openclaw gateway on backend port (gateway.port + 1) so proxy can own the public port.
+# Runs openclaw gateway on backend port (gateway.port + 1). Cross-platform: openclaw from PATH, else node resolve, else common paths (Linux/macOS).
 cat > "$GATEWAY_SCRIPT" << 'GWEOF'
 #!/bin/sh
 # Run openclaw gateway on (gateway.port + 1) so the router-governor proxy owns gateway.port.
@@ -101,15 +101,43 @@ PUBLIC_PORT=$(node -e "
   } catch (e) { process.stdout.write('18789'); }
 " 2>/dev/null) || PUBLIC_PORT=18789
 BACKEND_PORT=$((PUBLIC_PORT + 1))
-exec /usr/bin/node /usr/lib/node_modules/openclaw/dist/index.js gateway --port "$BACKEND_PORT"
+
+# Prefer openclaw CLI on PATH (works for npm i -g openclaw, npx, brew, etc.)
+if command -v openclaw >/dev/null 2>&1; then
+  exec openclaw gateway --port "$BACKEND_PORT"
+fi
+
+# Else resolve openclaw from Node (global or current node_modules)
+OPENCLAW_ENTRY=$(node -e "
+  try {
+    const p = require.resolve('openclaw/package.json');
+    const path = require('path');
+    process.stdout.write(path.join(path.dirname(p), 'dist', 'index.js'));
+  } catch (e) {}
+" 2>/dev/null)
+if [ -n "$OPENCLAW_ENTRY" ] && [ -f "$OPENCLAW_ENTRY" ]; then
+  exec node "$OPENCLAW_ENTRY" gateway --port "$BACKEND_PORT"
+fi
+
+# Fallback: common install paths (Ubuntu/Debian, macOS Homebrew, Linux /usr/local)
+for base in /usr/lib/node_modules/openclaw /usr/local/lib/node_modules/openclaw /opt/homebrew/lib/node_modules/openclaw; do
+  if [ -f "$base/dist/index.js" ]; then
+    exec node "$base/dist/index.js" gateway --port "$BACKEND_PORT"
+  fi
+done
+
+echo "openclaw not found. Install it (npm i -g openclaw, or system package) or ensure OPENCLAW_HOME is set." >&2
+exit 1
 GWEOF
 chmod +x "$GATEWAY_SCRIPT"
 echo "--- Wrote $GATEWAY_SCRIPT"
 
 # ─── validate-gateway-proxy.sh ───────────────────────────────────────────────
+# Port checks: ss (Linux) or lsof (macOS). Caddy paths include Homebrew.
 cat > "$VALIDATE_SCRIPT" << 'VEOF'
 #!/bin/sh
 # Validate the router-governor proxy → openclaw gateway → Caddy port chain.
+# Works on Linux (ss) and macOS (lsof).
 CONFIG="${OPENCLAW_CONFIG_PATH:-${OPENCLAW_HOME:-$HOME/.openclaw}/openclaw.json}"
 PUBLIC=$(node -e "
   try { const j=require(\"$CONFIG\"); process.stdout.write(String(j.gateway&&j.gateway.port||18789)); }
@@ -117,6 +145,20 @@ PUBLIC=$(node -e "
 " 2>/dev/null) || PUBLIC=18789
 BACKEND=$((PUBLIC + 1))
 FAIL=0
+
+# Port listening check: Linux (ss) or macOS (lsof)
+port_listening() {
+  p="$1"
+  if command -v ss >/dev/null 2>&1; then
+    ss -tlnp 2>/dev/null | grep -q ":${p}[^0-9]"
+    return $?
+  fi
+  if command -v lsof >/dev/null 2>&1; then
+    lsof -iTCP:${p} -sTCP:LISTEN -t 2>/dev/null | grep -q .
+    return $?
+  fi
+  return 1
+}
 
 echo "Config:  $CONFIG  (gateway.port = $PUBLIC)"
 echo "Chain:   Caddy → proxy :$PUBLIC → gateway :$BACKEND"
@@ -138,22 +180,22 @@ if [ -n "$CONFIG" ] && [ -f "$CONFIG" ]; then
 fi
 
 # Proxy
-if ss -tlnp 2>/dev/null | grep -q ":${PUBLIC}[^0-9]"; then
+if port_listening "$PUBLIC"; then
   echo "  [OK]   proxy listening on :$PUBLIC"
 else
   echo "  [FAIL] proxy not listening on :$PUBLIC"
   FAIL=1
 fi
 # Gateway
-if ss -tlnp 2>/dev/null | grep -q ":${BACKEND}[^0-9]"; then
+if port_listening "$BACKEND"; then
   echo "  [OK]   gateway listening on :$BACKEND"
 else
   echo "  [FAIL] gateway not listening on :$BACKEND"
   FAIL=1
 fi
-# Caddy
+# Caddy (Linux and macOS Homebrew paths)
 CADDY_OK=0
-for CF in /etc/caddy/Caddyfile /usr/local/etc/caddy/Caddyfile; do
+for CF in /etc/caddy/Caddyfile /usr/local/etc/caddy/Caddyfile /opt/homebrew/etc/Caddyfile; do
   [ -f "$CF" ] || continue
   if grep -q "reverse_proxy.*127\.0\.0\.1:${PUBLIC}[^0-9]" "$CF" 2>/dev/null; then
     echo "  [OK]   Caddy ($CF) → :$PUBLIC"
@@ -181,10 +223,14 @@ VEOF
 chmod +x "$VALIDATE_SCRIPT"
 echo "--- Wrote $VALIDATE_SCRIPT"
 
-# ─── systemd wiring ──────────────────────────────────────────────────────────
-if ! systemctl --user status openclaw-gateway.service >/dev/null 2>&1; then
-  echo "--- openclaw-gateway.service not found; skipping systemd wiring"
-else
+# ─── systemd wiring (Linux) or LaunchAgents (macOS) ───────────────────────────
+NODE_BIN="$(command -v node 2>/dev/null || echo 'node')"
+OS="$(uname -s)"
+
+if [ "$OS" = "Linux" ]; then
+  if ! systemctl --user status openclaw-gateway.service >/dev/null 2>&1; then
+    echo "--- openclaw-gateway.service not found; skipping systemd wiring"
+  else
   # Refuse to activate if openclaw.json contains unsupported agents.defaults.skills (gateway won't start)
   if [ -f "$OC_CONFIG" ]; then
     if node -e "
@@ -244,7 +290,7 @@ After=openclaw-gateway.service
 Environment=OPENCLAW_GATEWAY_PROXY_PORT=$GATEWAY_PUBLIC_PORT
 Environment=OPENCLAW_GATEWAY_BACKEND_URL=http://127.0.0.1:$GATEWAY_BACKEND_PORT
 WorkingDirectory=$REPO_ROOT
-ExecStart=/usr/bin/node $REPO_ROOT/dist/src/gateway-proxy.js
+ExecStart=$NODE_BIN $REPO_ROOT/dist/src/gateway-proxy.js
 Restart=always
 RestartSec=5
 
@@ -257,10 +303,92 @@ PEOF
   systemctl --user enable openclaw-gateway-proxy.service
   systemctl --user restart openclaw-gateway-proxy.service
   echo "--- Proxy restarted (port $GATEWAY_PUBLIC_PORT → backend $GATEWAY_BACKEND_PORT)"
+  fi
+fi
+
+# ─── macOS: LaunchAgent plists (gateway + proxy) ──────────────────────────────
+if [ "$OS" = "Darwin" ]; then
+  LAUNCH_AGENTS="${HOME}/Library/LaunchAgents"
+  mkdir -p "$LAUNCH_AGENTS"
+
+  # Gateway: run run-gateway.sh with env from systemd-style env file
+  GATEWAY_PLIST="$LAUNCH_AGENTS/com.openclaw.router-governor.gateway.plist"
+  cat > "$GATEWAY_PLIST" << PLISTGW
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.openclaw.router-governor.gateway</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>$GATEWAY_SCRIPT</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>OPENCLAW_HOME</key>
+    <string>$OPENCLAW_HOME</string>
+    <key>OPENCLAW_CONFIG_PATH</key>
+    <string>$OC_CONFIG</string>
+  </dict>
+  <key>RunAtLoad</key>
+  <false/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>/tmp/openclaw-gateway.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/openclaw-gateway.err</string>
+</dict>
+</plist>
+PLISTGW
+  echo "--- Wrote $GATEWAY_PLIST (load with: launchctl load $GATEWAY_PLIST)"
+
+  # Proxy: node gateway-proxy.js from repo
+  PROXY_PLIST="$LAUNCH_AGENTS/com.openclaw.router-governor.proxy.plist"
+  cat > "$PROXY_PLIST" << PLISTPX
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.openclaw.router-governor.proxy</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>$NODE_BIN</string>
+    <string>$REPO_ROOT/dist/src/gateway-proxy.js</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>OPENCLAW_GATEWAY_PROXY_PORT</key>
+    <string>$GATEWAY_PUBLIC_PORT</string>
+    <key>OPENCLAW_GATEWAY_BACKEND_URL</key>
+    <string>http://127.0.0.1:$GATEWAY_BACKEND_PORT</string>
+    <key>OPENCLAW_HOME</key>
+    <string>$OPENCLAW_HOME</string>
+    <key>ROUTER_GOVERNOR_POLICY_PATH</key>
+    <string>$REPO_ROOT/config/policy.json</string>
+  </dict>
+  <key>WorkingDirectory</key>
+  <string>$REPO_ROOT</string>
+  <key>RunAtLoad</key>
+  <false/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>/tmp/openclaw-gateway-proxy.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/openclaw-gateway-proxy.err</string>
+</dict>
+</plist>
+PLISTPX
+  echo "--- Wrote $PROXY_PLIST (load with: launchctl load $PROXY_PLIST)"
+  echo "--- macOS: Start gateway and proxy with: launchctl load $GATEWAY_PLIST && launchctl load $PROXY_PLIST"
 fi
 
 # ─── Caddy: ensure it points to the proxy port (not the backend) ─────────────
-for CADDYFILE in /etc/caddy/Caddyfile /usr/local/etc/caddy/Caddyfile; do
+# Linux and macOS Homebrew paths
+for CADDYFILE in /etc/caddy/Caddyfile /usr/local/etc/caddy/Caddyfile /opt/homebrew/etc/Caddyfile; do
   [ -f "$CADDYFILE" ] || continue
   NEEDS_RELOAD=0
   # If Caddy is pointing directly at the backend port, redirect it to the proxy port

@@ -199,17 +199,17 @@ Keep this repo under the OpenClaw workspace:
   npm run activate
   ```
 
-  `scripts/post-pull-activate.sh` does everything automatically:
+  `scripts/post-pull-activate.sh` does everything automatically (Linux and macOS):
 
   | Step | What it does |
   |------|-------------|
   | Build | `npm install`, `npm run build`, `npm test` |
   | Skill | Copies `skills/router-governor/` → `workspace/skills/router-governor/` |
-  | Env files | Writes `workspace/.env.router-governor` (shell) and `.env.router-governor.systemd` (systemd) |
-  | Gateway | Generates `workspace/scripts/run-gateway.sh` (reads `openclaw.json` at start; runs on `gateway.port+1`); patches `openclaw-gateway.service` override with blank+new `ExecStart=`; restarts gateway |
-  | Proxy | Writes and restarts `openclaw-gateway-proxy.service` on `gateway.port` |
-  | Caddy | If Caddyfile found pointing to `gateway.port+1`, rewrites it to `gateway.port` and reloads Caddy |
-  | Validate | Generates `workspace/scripts/validate-gateway-proxy.sh` |
+  | Env files | Writes `workspace/.env.router-governor` (shell) and `.env.router-governor.systemd` (Linux systemd) |
+  | Gateway script | Generates `workspace/scripts/run-gateway.sh` — finds openclaw via PATH, `require.resolve`, or common paths (Ubuntu/macOS Homebrew) |
+  | **Linux** | Patches `openclaw-gateway.service` override; restarts gateway and `openclaw-gateway-proxy.service`; updates Caddy if present |
+  | **macOS** | Writes LaunchAgent plists to `~/Library/LaunchAgents/` for gateway and proxy; start with `launchctl load ~/Library/LaunchAgents/com.openclaw.router-governor.gateway.plist` and same for `.proxy.plist` |
+  | Validate | Generates `workspace/scripts/validate-gateway-proxy.sh` (uses `ss` on Linux, `lsof` on macOS) |
 
 - If the repo is **not** under `.../workspace/repositories/`, set `OPENCLAW_WORKSPACE` first:
 
@@ -220,8 +220,10 @@ Keep this repo under the OpenClaw workspace:
 
 #### After activation — validate the chain
 
+Run the generated script (path depends on your workspace):
+
 ```bash
-/root/openclaw-stock-home/.openclaw/workspace/scripts/validate-gateway-proxy.sh
+<workspace>/scripts/validate-gateway-proxy.sh
 ```
 
 Output checks that proxy, gateway, and Caddy all reference the correct ports and that `/health` returns `200`.
