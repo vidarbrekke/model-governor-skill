@@ -1,5 +1,6 @@
 import path from "node:path";
 import { appendJsonl, enforceLogRetention } from "./logger.js";
+import { resolveGovernorLogPath } from "./log-path.js";
 import { loadPolicy } from "./policy.js";
 import { makeHandoffAnnouncement, route } from "./router.js";
 import { SkillContext, SkillInput, SkillOutput } from "./types.js";
@@ -12,10 +13,7 @@ function isShadowMode(): boolean {
 }
 
 function resolveLogPath(): string {
-  const envPath = process.env.ROUTER_GOVERNOR_LOG_PATH;
-  if (envPath) return envPath;
-  const configured = policy.logging.path ?? ".openclaw/logs/model-governor.jsonl";
-  return path.isAbsolute(configured) ? configured : path.join(process.cwd(), configured);
+  return resolveGovernorLogPath(policy);
 }
 
 function boundedRouterResponse(input: string): string {

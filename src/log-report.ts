@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import fs from "node:fs";
-import path from "node:path";
 import { loadPolicy } from "./policy.js";
+import { resolveGovernorLogPath } from "./log-path.js";
 
 type LogEntry = {
   timestamp?: string;
@@ -19,9 +19,8 @@ function getArg(name: string): string | undefined {
 
 function resolveLogPath(policyPath?: string): string {
   const policy = loadPolicy(policyPath);
-  const envPath = process.env.ROUTER_GOVERNOR_LOG_PATH;
-  const configured = envPath ?? policy.logging.path ?? ".openclaw/logs/model-governor.jsonl";
-  return path.isAbsolute(configured) ? configured : path.join(process.cwd(), configured);
+  const explicit = getArg("--log-path");
+  return resolveGovernorLogPath(policy, explicit ? { explicitLogPath: explicit } : undefined);
 }
 
 function toDateMs(v?: string): number | null {

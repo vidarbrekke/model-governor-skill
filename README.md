@@ -57,11 +57,20 @@ The `src/` tree implements **deterministic, policy-driven routing** so behavior 
 
 - **Entrypoint:** `handle(input: SkillInput, ctx: SkillContext): Promise<SkillOutput>` from `src/index.ts` (or `dist/index.js` after build). This is the only integration surface; no other exports are required for routing.
 - **Policy path:** Loaded once at module load. Default path is `config/policy.json` (relative to process cwd). Override with env `ROUTER_GOVERNOR_POLICY_PATH` (absolute or relative to cwd) so the runtime can point at the governor repo’s config when cwd is different (e.g. OpenClaw app root).
-- **Log path:** Override with env `ROUTER_GOVERNOR_LOG_PATH` to force an absolute path for the JSONL log; otherwise `policy.logging.path` is used (default `.openclaw/logs/model-governor.jsonl` relative to cwd).
+- **Log path:** Resolved in order: (1) env `ROUTER_GOVERNOR_LOG_PATH` (absolute or relative to cwd); (2) env `OPENCLAW_HOME` → `<OPENCLAW_HOME>/logs/model-governor.jsonl` so each instance can set a single base path; (3) `policy.logging.path` or default `.openclaw/logs/model-governor.jsonl` relative to cwd. No hardcoded paths in the repo—shareable across instances.
 - **Failure fallback:** If `handle()` throws (e.g. policy load failed, or routing threw), the runtime **must** treat it as a handoff to `default_worker_alias` with a minimal reason (e.g. `reason_codes: ["governor_error"]`) and **must not** surface the error to the user as a broken response. Log the error server-side for diagnostics.
 - **Output mapping:**  
   - `mode: "respond"` → send `text` as the assistant reply; no model switch.  
   - `mode: "handoff"` → switch active model to `chosenAlias`, inject `announcement` (if present) into the conversation, and pass `handoff` to the worker (e.g. as system or first user message) so it receives `intent`, `reason_codes`, `signals`, `handoff_summary`, `original_user_text`.
+
+### Environment variables
+
+| Variable | Purpose |
+|----------|--------|
+| **`ROUTER_GOVERNOR_POLICY_PATH`** | Policy file path (default `config/policy.json`). Use when cwd is not the governor repo (e.g. OpenClaw app root). |
+| **`ROUTER_GOVERNOR_LOG_PATH`** | Override log file path. If set, this is used for the JSONL log (absolute or relative to cwd). |
+| **`OPENCLAW_HOME`** | Base path for OpenClaw home. When set, default log path becomes `<OPENCLAW_HOME>/logs/model-governor.jsonl` so each instance can use an absolute path without hardcoding. |
+| **`ROUTER_GOVERNOR_SHADOW_MODE`** | Set to `1` to enable shadow mode (log decisions but always hand off to default worker). |
 
 ### Contracts
 
@@ -86,7 +95,7 @@ When the **code runtime** is used and `config/policy.json` has `logging.enabled:
 **How it is configured:** Logging is controlled by the `logging` section in `config/policy.json` and is **on by default** in this project.
 
 - **Default:** `"enabled": true` (keep this on for diagnostics/review).
-- **Log path (optional):** Set `"path": "/your/path/model-governor.jsonl"` to choose where the file is written. If omitted, the default is `.openclaw/logs/model-governor.jsonl` (relative to the process working directory). The process must have write access to that path.
+- **Log path (optional):** Set `"path": "/your/path/model-governor.jsonl"` in policy to choose where the file is written. For a **server-side absolute default without hardcoding**, set env `OPENCLAW_HOME` (e.g. `/root/openclaw-stock-home/.openclaw`) so the default becomes `<OPENCLAW_HOME>/logs/model-governor.jsonl`. Override with env `ROUTER_GOVERNOR_LOG_PATH` for a one-off path. If neither env is set and policy path is omitted, the default is `.openclaw/logs/model-governor.jsonl` relative to the process working directory. The process must have write access to the chosen path.
 - **Automatic retention cleanup:**  
   - `"retention_days": 14` keeps only recent events (based on each line's `timestamp`).  
   - `"max_file_bytes": 5242880` keeps file size bounded (keeps newest lines).
