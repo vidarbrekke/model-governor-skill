@@ -156,12 +156,37 @@ To **wire the governor into OpenClaw** so it runs automatically when the user se
 
 **This repo does not set any active parameters by itself.** Repo directories are for **development and version control**, not for live use. To use with OpenClaw:
 
+### Server layout (e.g. Linode)
+
+On the server, keep this repo under the OpenClaw workspace so one script can build, test, deploy the skill, and write env for the governor:
+
+- **Canonical path:** `<workspace>/.openclaw/workspace/repositories/router-governor`  
+  Example: `/root/openclaw-stock-home/.openclaw/workspace/repositories/router-governor`
+- After **clone or pull**, run activation so the skill is deployed and paths are set:
+
+  ```bash
+  cd <workspace>/repositories/router-governor
+  npm run activate
+  ```
+
+  This runs `scripts/post-pull-activate.sh`, which: (1) `npm install` and `npm run build` and `npm test`, (2) copies **skills/router-governor/** into **workspace/skills/router-governor/** so OpenClaw loads it, (3) writes **workspace/.env.router-governor** with `OPENCLAW_HOME` and `ROUTER_GOVERNOR_POLICY_PATH`. To make the governor code active at runtime, the process that starts OpenClaw should **source** that env file; OpenClaw must still call the governor `handle()` (or bridge) when the router model is selected (see [Verifying logging and handoff](#verifying-logging-and-handoff-without-openclaw-patch)).
+
+- If the repo is **not** under `.../workspace/repositories/router-governor`, set `OPENCLAW_WORKSPACE` before running activate:
+
+  ```bash
+  export OPENCLAW_WORKSPACE=/path/to/.openclaw/workspace
+  npm run activate
+  ```
+
+### Manual installation steps
+
 1. **Model aliases:** Copy or merge **config/models.json** into your live config (e.g. `~/.openclaw/openclaw.json` under `agents.defaults.models` or `llm.modelAliases`).
 2. **Primary/fallbacks:** Optionally merge the relevant keys from **config/openclaw.json** into the same file.
 3. **Router-governor skill:** Copy **skills/router-governor/** to your OpenClaw skills directory, e.g.  
    `cp -r skills/router-governor ~/.openclaw/skills/`  
    or, on a workspace layout:  
-   `cp -r skills/router-governor <workspace>/skills/`
+   `cp -r skills/router-governor <workspace>/skills/`  
+   (The **activate** script does this when the repo lives under `workspace/repositories/router-governor`.)
 4. **Allowlist + provider catalog:** OpenClaw only allows models that are (a) in `agents.defaults.models` (allowlist for `/model`) and (b) in the provider’s model catalog. The snippet includes `models.providers.openrouter` and `models.providers.fireworks` (kimi only). Merge the full **config/openclaw.json** snippet (including the `models` block) into your live config so you don’t get “Model … is not allowed.” All models are OpenRouter except **kimi** (`/fireworks/models/kimi-k2p5`), which is the only non-OpenRouter model; configure Fireworks auth (e.g. `FIREWORKS_API_KEY`) if you use kimi.
 5. Live config and skills live in `~/.openclaw/` (or your workspace). Do not rely on this repo path at runtime.
 
@@ -174,7 +199,7 @@ To **wire the governor into OpenClaw** so it runs automatically when the user se
 
 ## Version control
 
-This single folder is the git repo. Push to GitHub for backup and collaboration. On the server or another machine, clone this repo for development; then follow the installation steps above to copy/merge into that environment’s live OpenClaw config.
+This single folder is the git repo. Push to GitHub for backup and collaboration. On the server, clone into `<workspace>/repositories/router-governor`, then run **`npm run activate`** after each pull to build, test, deploy the skill, and refresh the env file (see [Server layout](#server-layout-eg-linode)).
 
 ## Troubleshooting / verified state
 
