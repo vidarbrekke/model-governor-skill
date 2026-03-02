@@ -102,7 +102,10 @@ export function route(prompt: string, policy: Policy, ctx: RouteRuntimeContext =
   let chosenAlias = policy.intent_routing[intent]?.worker ?? policy.default_worker_alias;
   const shouldStayOnRouter = intent === "simple_qa" || intent === "triage_only";
 
-  if (shouldStayOnRouter && !hardEscalate && !softEscalate && confidence >= 0.6) {
+  const stayMin = policy.router_stay_min_confidence ?? 0.6;
+  const escalateBelow = policy.escalate_below_confidence ?? 0.55;
+
+  if (shouldStayOnRouter && !hardEscalate && !softEscalate && confidence >= stayMin) {
     chosenAlias = policy.router_alias;
   }
 
@@ -122,7 +125,7 @@ export function route(prompt: string, policy: Policy, ctx: RouteRuntimeContext =
   }
 
   // Keep router conservative on complex requests.
-  if (chosenAlias === policy.router_alias && (hardEscalate || confidence < 0.55)) {
+  if (chosenAlias === policy.router_alias && (hardEscalate || confidence < escalateBelow)) {
     chosenAlias = policy.default_worker_alias;
     reasonCodes.push("router_disallowed_action");
   }

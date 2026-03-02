@@ -16,6 +16,8 @@
       "max_turns_before_forced_escalation": 1
     }
   },
+  "router_stay_min_confidence": 0.6,
+  "escalate_below_confidence": 0.55,
   "signals": {
     "hard_escalate_if_any": [
       "contains_patch_request",

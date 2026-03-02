@@ -40,6 +40,19 @@ function validatePolicy(obj: Partial<Policy>): asserts obj is Policy {
     );
   }
 
+  if (obj.router_stay_min_confidence !== undefined) {
+    const v = obj.router_stay_min_confidence;
+    if (typeof v !== "number" || v < 0 || v > 1) {
+      throw new Error("Invalid policy.json: router_stay_min_confidence must be a number in [0, 1]");
+    }
+  }
+  if (obj.escalate_below_confidence !== undefined) {
+    const v = obj.escalate_below_confidence;
+    if (typeof v !== "number" || v < 0 || v > 1) {
+      throw new Error("Invalid policy.json: escalate_below_confidence must be a number in [0, 1]");
+    }
+  }
+
   if (!obj.signals) {
     throw new Error("Invalid policy.json: missing signals");
   }

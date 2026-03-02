@@ -22,6 +22,10 @@ export interface Policy {
       max_turns_before_forced_escalation: number;
     };
   };
+  /** Min confidence to keep request on router (default 0.6). */
+  router_stay_min_confidence?: number;
+  /** Escalate if confidence below this when would stay on router (default 0.55). */
+  escalate_below_confidence?: number;
   signals: {
     hard_escalate_if_any: string[];
     soft_escalate_if_any: string[];

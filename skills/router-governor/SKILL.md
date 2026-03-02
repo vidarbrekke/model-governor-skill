@@ -99,3 +99,11 @@ If the user asks for model-change history or "why models were changed":
    - which aliases were selected (`chosen_alias` counts),
    - why changes happened (`reason_codes` and `signals`).
 3. Keep the answer concise and evidence-based (quote representative entries, do not fabricate).
+
+## Completion rule (worker)
+
+When the worker has finished the task:
+
+- If the result is **correct**, **complete**, and **validated** (e.g. user confirms or tests pass), **stop**.
+- Do not re-invoke the router or ask for another handoff for the same task.
+- Do not escalate again solely to "double-check" a finished answer.
