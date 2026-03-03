@@ -56,9 +56,10 @@ If any of these patterns appear, router must NOT provide a full solution. It mus
 
 - Debug/error patterns: `ECONNREFUSED`, `stack trace`, `TypeError`, `failing tests`, `root cause`
 - Coding/change patterns: `write script`, `patch`, `diff`, `refactor`, `optimize this code`
+- Test/refactor quality patterns: `add unit tests`, `write unit tests`, `mock(ing)`, `logic extraction`, `extract to` / `reusable`, `export from` — these route to **codex** (stronger model) for better test strategy and reuse suggestions.
 - Fresh-info patterns: `latest docs`, `last 60 days`, `cite sources`, `what changed recently`
 
-For these prompts, always hand off to the policy target alias (typically `default` for debugging/coding, `gemini` for web research).
+For these prompts, always hand off to the policy target alias (typically `default` for debugging/coding, **codex** for test authoring and refactor/extraction, `gemini` for web research).
 
 ## Router response contract
 

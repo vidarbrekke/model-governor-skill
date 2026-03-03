@@ -2,7 +2,7 @@
 {"id":"T002","prompt":"Summarize the differences between Mistral Small and Ministral 14B in plain English.","expected_alias":"router","expected_intent":"simple_qa","max_router_tool_calls":0}
 {"id":"T010","prompt":"Here is a stack trace. Find the likely root cause and propose a fix:\nError: ECONNREFUSED 127.0.0.1:5432\n...","expected_alias":"default","expected_intent":"debugging","max_router_tool_calls":1}
 {"id":"T011","prompt":"My unit tests started failing after upgrading dependencies. Help me debug and suggest changes.","expected_alias":"default","expected_intent":"debugging","max_router_tool_calls":1}
-{"id":"T012","prompt":"I need a patch-style diff to refactor this function for readability and performance:\n```go\nfunc X(){/* long */}\n```","expected_alias":"default","expected_intent":"coding","max_router_tool_calls":1}
+{"id":"T012","prompt":"I need a patch-style diff to refactor this function for readability and performance:\n```go\nfunc X(){/* long */}\n```","expected_alias":"codex","expected_intent":"deep_refactor","max_router_tool_calls":1}
 {"id":"T020","prompt":"Review this GitHub repo and identify architectural improvements across multiple packages.","expected_alias":"codex","expected_intent":"large_codebase_review","max_router_tool_calls":1}
 {"id":"T021","prompt":"I have 8 files. Propose a new module boundary and refactor plan with diff snippets.","expected_alias":"codex","expected_intent":"deep_refactor","max_router_tool_calls":1}
 {"id":"T022","prompt":"Design a cost-aware routing system for agents with a rubric + logging + eval harness.","expected_alias":"codex","expected_intent":"deep_refactor","max_router_tool_calls":1}
@@ -22,3 +22,5 @@
 {"id":"T091","prompt":"I have two goals: create a skill, and also build tests and logging. What's the plan?","expected_alias":"default","expected_intent":"coding","max_router_tool_calls":1}
 {"id":"T100","prompt":"Give me a 1-line bash command to find large files in a directory.","expected_alias":"router","expected_intent":"simple_qa","max_router_tool_calls":0}
 {"id":"T101","prompt":"Write a bash script that walks a repo, generates a report, and posts to Slack.","expected_alias":"default","expected_intent":"coding","max_router_tool_calls":1}
+{"id":"T102","prompt":"Add unit tests for this module. Use mocking for the DB layer.\n```ts\nfunction fetchUser(id: string) { return db.query('SELECT ...'); }\n```","expected_alias":"codex","expected_intent":"deep_refactor","max_router_tool_calls":1}
+{"id":"T103","prompt":"Extract the parsing logic to a reusable function and export it from sql.ts.","expected_alias":"codex","expected_intent":"deep_refactor","max_router_tool_calls":1}

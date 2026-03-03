@@ -52,6 +52,11 @@ export function detectSignals(prompt: string, policy: Policy): string[] {
     signals
   );
   maybePush(
+    /(add \w* unit tests?|write \w* unit tests?|create \w* unit tests?|add tests? for|mock(ing)?\b|logic extraction|extract (to|reusable|shared)|export .* from|reusable (logic|function))/i.test(p),
+    "mentions_test_authoring_or_mocking",
+    signals
+  );
+  maybePush(
     /(shell script|write .*script|generate .*script|bash script|powershell script)/i.test(p),
     "contains_cli_commands_request",
     signals

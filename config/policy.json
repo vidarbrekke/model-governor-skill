@@ -29,6 +29,7 @@
       "mentions_performance_optimization",
       "mentions_refactor_architecture",
       "mentions_test_suite_or_ci",
+      "mentions_test_authoring_or_mocking",
       "mentions_database_or_sql",
       "mentions_kubernetes_or_docker",
       "mentions_oauth_or_auth_flows",

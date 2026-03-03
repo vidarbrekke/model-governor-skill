@@ -45,6 +45,25 @@ function chooseIntent(signals: string[], prompt: string): { intent: Intent; conf
     reasons.push("deep_refactor");
     return { intent: "deep_refactor", confidence: 0.8, reasons };
   }
+  // Route test authoring, refactor/extraction, and mocking to codex (earlier escalation for code quality).
+  const codingRelated =
+    signals.includes("contains_code_block") ||
+    signals.includes("contains_patch_request") ||
+    signals.includes("mentions_test_suite_or_ci") ||
+    /patch-style diff|write a bash script|generate dockerfile|migrate a table|create a skill|build tests|add .* tests?|unit test|mock|logic extraction|extract (to|reusable)|export .* from/i.test(
+      prompt
+    );
+  const needsStrongerModel =
+    signals.includes("mentions_test_suite_or_ci") ||
+    signals.includes("mentions_test_authoring_or_mocking") ||
+    signals.includes("mentions_refactor_architecture") ||
+    /logic extraction|extract (to|reusable|shared)|export .* from|mock(ing)?\b|add \w* unit tests?|write \w* unit tests?/i.test(
+      prompt
+    );
+  if (codingRelated && needsStrongerModel) {
+    reasons.push("deep_refactor");
+    return { intent: "deep_refactor", confidence: 0.78, reasons };
+  }
   if (
     signals.includes("contains_code_block") ||
     signals.includes("contains_patch_request") ||
