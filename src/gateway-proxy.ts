@@ -201,7 +201,14 @@ adminConn.start();
 
 // ─── HTTP helpers ────────────────────────────────────────────────────────────
 
-type Message = { role: string; content: string | Array<{ type: string; text?: string }> };
+const TOOL_CALL_ID_RE = /^[A-Za-z0-9]{9}$/;
+const TOOL_CALL_ID_ALPHABET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+type Message = {
+  role: string;
+  content: string | Array<{ type: string; text?: string }>;
+  [key: string]: unknown;
+};
 type ChatBody = { model?: string; messages?: Message[]; stream?: boolean; [k: string]: unknown };
 
 function extractLastUserText(messages: Message[]): string {
@@ -217,6 +224,63 @@ function extractLastUserText(messages: Message[]): string {
     break;
   }
   return "";
+}
+
+function normalizeToolCallId(seed: string): string {
+  const cleaned = seed.replace(/[^A-Za-z0-9]/g, "");
+  if (TOOL_CALL_ID_RE.test(cleaned)) return cleaned.slice(0, 9);
+
+  let state = 0x4f1bbcdc;
+  for (const ch of seed) {
+    state = (state * 131 + ch.charCodeAt(0)) >>> 0;
+  }
+  let out = "";
+  for (let i = 0; i < 9; i++) {
+    state = (state * 1664525 + 1013904223) >>> 0;
+    out += TOOL_CALL_ID_ALPHABET[state % TOOL_CALL_ID_ALPHABET.length];
+  }
+  return out;
+}
+
+function sanitizeToolCallIds(messages: Message[]): boolean {
+  const toolCallIdMap = new Map<string, string>();
+  let changed = false;
+
+  const remapToolCallId = (raw: string): string => {
+    if (TOOL_CALL_ID_RE.test(raw)) return raw;
+    const mapped = toolCallIdMap.get(raw);
+    if (mapped) return mapped;
+    const next = normalizeToolCallId(raw);
+    toolCallIdMap.set(raw, next);
+    changed = true;
+    return next;
+  };
+
+  for (const message of messages) {
+    const toolCalls = (message as { tool_calls?: unknown }).tool_calls;
+    if (Array.isArray(toolCalls)) {
+      for (const toolCall of toolCalls) {
+        if (!toolCall || typeof toolCall !== "object") continue;
+        const call = toolCall as { id?: unknown; type?: unknown; function?: unknown };
+        if (typeof call.id === "string" && call.id) {
+          const next = remapToolCallId(call.id);
+          if (next !== call.id) {
+            call.id = next;
+          }
+        }
+      }
+    }
+
+    const toolCallRef = message.tool_call_id;
+    if (typeof toolCallRef === "string" && toolCallRef) {
+      const next = remapToolCallId(toolCallRef);
+      if (next !== toolCallRef) {
+        message.tool_call_id = next;
+      }
+    }
+  }
+
+  return changed;
 }
 
 function openAiCompletion(
@@ -265,13 +329,22 @@ const server = http.createServer(async (req, res) => {
   const chunks: Buffer[] = [];
   for await (const c of req) chunks.push(c as Buffer);
   const bodyBuf = Buffer.concat(chunks);
+  let forwardBody: Buffer = bodyBuf;
 
   if (method !== "POST" || reqPath !== "/v1/chat/completions") { forward(method, reqPath, req.headers, bodyBuf.length ? bodyBuf : null, res); return; }
 
   let body: ChatBody;
   try { body = JSON.parse(bodyBuf.toString("utf8")) as ChatBody; } catch { forward(method, reqPath, req.headers, bodyBuf, res); return; }
+  const sanitized = Array.isArray(body.messages) && sanitizeToolCallIds(body.messages);
+  if (sanitized) {
+    console.warn("[governor proxy] sanitized tool call ids in /v1/chat/completions payload");
+    forwardBody = Buffer.from(JSON.stringify(body));
+  }
 
-  if (typeof body.model !== "string" || body.model.trim() !== "router") { forward(method, reqPath, req.headers, bodyBuf, res); return; }
+  if (typeof body.model !== "string" || body.model.trim() !== "router") {
+    forward(method, reqPath, req.headers, forwardBody.length ? forwardBody : null, res);
+    return;
+  }
 
   const messages = Array.isArray(body.messages) ? body.messages : [];
   const text = extractLastUserText(messages);

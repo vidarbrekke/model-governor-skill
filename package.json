@@ -11,6 +11,7 @@
     "bridge": "node dist/src/cli.js",
     "log:report": "node dist/src/log-report.js --hours 24",
     "activate": "bash scripts/post-pull-activate.sh",
+    "verify:router-config": "bash scripts/verify-openclaw-router-config.sh",
     "proxy": "node dist/src/gateway-proxy.js"
   },
   "devDependencies": {

@@ -233,6 +233,25 @@ Run the generated script (path depends on your workspace):
 
 Output checks that proxy, gateway, and Caddy all reference the correct ports and that `/health` returns `200`.
 
+#### Router model config drift check (recommended)
+
+After activation or config edits, run:
+
+```bash
+cd <workspace>/repositories/model-governor-skill
+OPENCLAW_HOME=/path/to/openclaw-home \
+  OPENCLAW_CONFIG_PATH=/path/to/openclaw-home/openclaw.json \
+  scripts/verify-openclaw-router-config.sh
+```
+
+This check validates that:
+
+- `agents.defaults.model` is present with a primary and fallbacks.
+- `agents.defaults.models` includes the repo-defined alias allowlist.
+- `models.providers` includes provider model catalogs and required metadata (for example `models.providers.openrouter.baseUrl`).
+
+If this check fails, the repo config and live `openclaw.json` are out of sync and `/model` resolution can drift to auto provider defaults again.
+
 #### Changing the port
 
 1. Edit `gateway.port` in `openclaw.json`.
@@ -272,6 +291,17 @@ When the governor runs (via HTTP API, WebSocket interception, or bridge CLI), th
 ```
 
 If no log file appears, ensure `policy.logging.enabled` is `true`, the process has write access to the log directory, and the proxy is running (both HTTP and WS paths go through the proxy).
+
+### Tool call ID / provider validation errors
+
+If you see errors like this from OpenRouter:
+
+`Tool call id was ... but must be a-z, A-Z, 0-9, with a length of 9`
+
+that is usually a provider-side validation error for stale or nonconforming `tool_call_id` values in the chat payload.
+
+- Quick recovery: start a new chat/session (or reset the session) to clear old tool-call history.
+- Hardening: this repo now normalizes invalid tool-call IDs in the proxy before forwarding `POST /v1/chat/completions` requests so legacy IDs are rewritten to provider-safe form.
 
 **How the governor enforces routing (both paths):**
 - **HTTP** (`POST /v1/chat/completions` with `model=router`): Proxy calls `handle()` and returns the response or handoff directly.
