@@ -1,5 +1,7 @@
 # router-governor / model-governor skill
 
+> Workspace operations SOT: `../../OPERATIONS_SOT.md` (single point of truth for token/tool efficiency and incident execution).
+
 ## What this is
 
 **Router-governor** is a **model governance** layer for [OpenClaw](https://github.com/OpenClaw/OpenClaw). It decides which AI model should handle each user request—a lightweight “router” for simple questions, or a more capable “worker” (e.g. coding, debugging, web research)—so you use the cheapest model that can reliably do the job.

@@ -1,5 +1,7 @@
 # Model Governor Skill (OpenClaw) — Implementation Guide (TypeScript)
 
+> Workspace operations SOT: `../../OPERATIONS_SOT.md` (single point of truth for token/tool efficiency and incident execution).
+
 This guide is designed to be **handed to an AI developer in Cursor** and implemented end-to-end with minimal ambiguity.
 
 Goals:
