@@ -67,7 +67,8 @@ function readGatewayToken(): string | null {
   }
 }
 
-const GATEWAY_TOKEN = readGatewayToken();
+function getGatewayToken(): string | null { return readGatewayToken(); }
+
 
 // ─── Router model pattern matching ───────────────────────────────────────────
 
@@ -132,7 +133,8 @@ class AdminGatewayConnection {
           role: "operator",
           scopes: ["operator.admin"]
         };
-        if (GATEWAY_TOKEN) params.auth = { token: GATEWAY_TOKEN };
+        const gwTok = getGatewayToken();
+        if (gwTok) params.auth = { token: gwTok };
         const id = randomUUID();
         const p = new Promise<unknown>((resolve, reject) => this.pending.set(id, { resolve, reject }));
         p.then(() => {
@@ -409,7 +411,13 @@ server.on("upgrade", (req, socket, head) => {
       if (v) forwardHeaders[k] = Array.isArray(v) ? v.join(", ") : v;
     }
 
-    const backendWs = new WebSocket(wsUrl, { headers: forwardHeaders });
+    const backendHeaders: Record<string, string> = { ...forwardHeaders };
+    if (!Object.keys(backendHeaders).some(k => k.toLowerCase() === "authorization")) {
+      const gwTok = getGatewayToken();
+      if (gwTok) backendHeaders.Authorization = gwTok.startsWith("Bearer ") ? gwTok : `Bearer ${gwTok}`;
+    }
+
+    const backendWs = new WebSocket(wsUrl, { headers: backendHeaders });
     const sessionModels: SessionModelMap = new Map();
     const pendingSend: Buffer[] = [];
     let backendOpen = false;
@@ -518,5 +526,5 @@ server.on("upgrade", (req, socket, head) => {
 server.listen(PORT, "0.0.0.0", () => {
   console.error(`[governor proxy] listening on ${PORT}, backend ${GATEWAY_URL}`);
   console.error(`[governor proxy] router model patterns: ${ROUTER_MODEL_PATTERNS.join(", ")}`);
-  console.error(`[governor proxy] admin WS: connecting to ${BACKEND_WS_URL} (cli mode${GATEWAY_TOKEN ? ", token auth" : ", no token"})`);
+  console.error(`[governor proxy] admin WS: connecting to ${BACKEND_WS_URL} (cli mode${getGatewayToken() ? ", token auth" : ", no token"})`);
 });

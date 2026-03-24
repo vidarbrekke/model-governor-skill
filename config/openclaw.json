@@ -24,7 +24,7 @@
             "maxTokens": 16384
           }
         },
-        "openrouter/openai/gpt-5.3-codex": {
+        "openrouter/openai/gpt-5.4": {
           "alias": "codex53",
           "params": {
             "maxTokens": 16384
@@ -75,8 +75,8 @@
             "name": "Gemini 2.5 Flash"
           },
           {
-            "id": "openai/gpt-5.3-codex",
-            "name": "GPT-5.3 Codex"
+            "id": "openai/gpt-5.4",
+            "name": "GPT-5.4"
           },
           {
             "id": "anthropic/claude-sonnet-4.6",

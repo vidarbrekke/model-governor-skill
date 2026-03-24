@@ -44,7 +44,7 @@ These are the files that **make up the model-governor / router-governor feature*
 - **Router:** `router` alias (lightweight triage).
 - **Worker / default:** `default` or `qwen` for coding.
 - **Fallbacks:** `gemini`, `sonnet`.
-- **Advanced coding:** Use **`/model openrouter/openai/gpt-5.3-codex`** (full ref). Alias **`codex53`** is configured but on some OpenClaw versions a bare token like `codex53` is resolved as **anthropic/codex53** (default provider), so it fails "not allowed." The full ref avoids that. See [docs/5-WHYS-MODEL-CODEX.md](docs/5-WHYS-MODEL-CODEX.md) for root-cause analysis.
+- **Advanced coding:** Use **`/model openrouter/openai/gpt-5.4`** (full ref). Alias **`codex53`** is configured but on some OpenClaw versions a bare token like `codex53` is resolved as **anthropic/codex53** (default provider), so it fails "not allowed." The full ref avoids that. See [docs/5-WHYS-MODEL-CODEX.md](docs/5-WHYS-MODEL-CODEX.md) for root-cause analysis.
 - **If the reply says "Model set to … gpt-5.1-codex":** The app’s built-in catalog can overwrite the stored/displayed model id with 5.1; see the 5-whys doc. Prefer the full ref above; if the reply still shows 5.1, it may be an OpenClaw bug to report.
 
 The snippet in **config/openclaw.json** only wires `router`, `default`, and `gemini`. Aliases `codex` and `sonnet` are defined in **config/models.json** and are available for manual override or future escalation tiers; add them to your live config if you use those tiers.
