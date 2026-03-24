@@ -5,3 +5,5 @@ linode.env
 sync_to_github.sh
 node_modules
 dist
+# Local OpenClaw runtime state
+.openclaw/
